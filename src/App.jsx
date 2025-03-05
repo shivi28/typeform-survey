@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
@@ -12,12 +12,17 @@ function App() {
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPlayButton, setShowPlayButton] = useState(true);
+  const videoRef = useRef(null);
 
-  // Configure axios with the API URL (will be from environment)
-  const API_URL = import.meta.env.VITE_API_URL || 'https://your-render-app-name.onrender.com';
   
-  // Set axios defaults
-  axios.defaults.baseURL = API_URL;
+// Configure axios with the API URL from environment variables
+const API_URL = import.meta.env.VITE_API_URL;
+console.log('Using API URL:', API_URL); // For debugging purposes
+
+// Set axios defaults
+axios.defaults.baseURL = API_URL;
+
 
   const questions = [
     {
@@ -29,7 +34,7 @@ function App() {
         "Sometimes", 
         "No, I always organize well"
       ],
-      videoSrc: "/videos/video1.mp4",
+      videoSrc: "/typeform-survey/videos/video1.mp4",
       allowVideoUpload: true
     },
     {
@@ -37,7 +42,7 @@ function App() {
       questionText: "What's your main productivity challenge?",
       type: "text",
       placeholder: "Describe your biggest productivity hurdle...",
-      videoSrc: "/videos/video2.mp4",
+      videoSrc: "/typeform-survey/videos/video2.mp4",
       allowVideoUpload: true
     }
   ];
@@ -98,11 +103,11 @@ function App() {
       const formData = new FormData();
       
       formData.append('answers', JSON.stringify(finalAnswers));
-
+  
       Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
         formData.append(`video-${questionId}`, videoData.file);
       });
-
+  
       console.log('Submitting survey to:', `${API_URL}/api/submit-survey`);
       const response = await axios.post(
         '/api/submit-survey', 
@@ -111,7 +116,7 @@ function App() {
           headers: { 'Content-Type': 'multipart/form-data' }
         }
       );
-
+  
       console.log('Submission response:', response.data);
       setIsSubmitted(true);
       setShowThankYou(true);
@@ -153,13 +158,28 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Question-Specific Video Section */}
-          <div className="relative w-full h-64 bg-gray-200">
+          <div className="relative w-full overflow-hidden" style={{ height: 'min(80vh, 500px)' }}>
             <video 
               key={currentQuestion.id}
               src={currentQuestion.videoSrc}
-              className="absolute inset-0 w-full h-full object-cover"
-              autoPlay
+              className="absolute inset-0 w-full h-full object-contain"
+              ref={videoRef}
+              playsInline
+              controls
             />
+            {showPlayButton && (
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer z-10"
+                onClick={() => {
+                  videoRef.current.play();
+                  setShowPlayButton(false);
+                }}
+              >
+                <div className="w-20 h-20 rounded-full bg-white bg-opacity-80 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-8 space-y-6">
