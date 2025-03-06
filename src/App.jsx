@@ -4,6 +4,91 @@ import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 
+// Inline styles object
+const styles = {
+  authPageContainer: {
+    minHeight: '100vh',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: 'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)',
+    padding: '1rem',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  authCard: {
+    width: '100%',
+    maxWidth: '450px',
+    background: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+    padding: '2.5rem',
+    textAlign: 'center',
+    position: 'relative',
+    zIndex: 10
+  },
+  authTitle: {
+    color: '#333',
+    fontSize: '2rem',
+    fontWeight: 700,
+    marginBottom: '1rem'
+  },
+  authDescription: {
+    color: '#666',
+    fontSize: '1.1rem',
+    lineHeight: 1.5,
+    marginBottom: '2rem'
+  },
+  signinContainer: {
+    margin: '2rem 0',
+    display: 'flex',
+    justifyContent: 'center'
+  },
+  privacyText: {
+    fontSize: '0.85rem',
+    color: '#888',
+    marginTop: '1.5rem',
+    lineHeight: 1.4
+  },
+  shape: {
+    position: 'absolute',
+    background: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: '50%'
+  },
+  shape1: {
+    width: '100px',
+    height: '100px',
+    top: '15%',
+    left: '15%'
+  },
+  shape2: {
+    width: '150px',
+    height: '150px',
+    top: '70%',
+    left: '80%'
+  },
+  shape3: {
+    width: '70px',
+    height: '70px',
+    top: '30%',
+    right: '20%'
+  },
+  shape4: {
+    width: '120px',
+    height: '120px',
+    bottom: '20%',
+    left: '10%'
+  },
+  errorMessage: {
+    backgroundColor: '#ffebee',
+    color: '#d32f2f',
+    padding: '1rem',
+    borderRadius: '8px',
+    marginBottom: '1.5rem'
+  }
+};
+
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -247,22 +332,30 @@ function App() {
     }
   };
 
+// Update your renderGoogleLogin function in App.jsx
+
   const renderGoogleLogin = () => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-blue-700 to-indigo-500 p-4 relative overflow-hidden">
+        {/* Animated shapes - You'd need to add the animation in your CSS file */}
+        <div className="absolute top-1/4 left-1/4 w-24 h-24 rounded-full bg-white bg-opacity-10"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-32 h-32 rounded-full bg-white bg-opacity-10"></div>
+        <div className="absolute top-1/3 right-1/3 w-16 h-16 rounded-full bg-white bg-opacity-10"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-20 h-20 rounded-full bg-white bg-opacity-10"></div>
+        
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center relative z-10">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">Welcome to Our Survey</h2>
-          <p className="text-gray-600 mb-8">
-            Please sign in with Google to participate in our survey.
+          <p className="text-lg text-gray-600 mb-6">
+            Your feedback is valuable to us! Sign in with Google to share your thoughts and help us improve.
           </p>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
               {error}
             </div>
           )}
           
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center my-8">
             <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -276,7 +369,7 @@ function App() {
             </GoogleOAuthProvider>
           </div>
           
-          <p className="text-xs text-gray-500">
+          <p className="text-sm text-gray-500 mt-6">
             We only use your email to prevent duplicate submissions.
             We don't share your information with third parties.
           </p>
@@ -287,35 +380,35 @@ function App() {
 
   const renderAlreadySubmitted = () => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <CheckCircle className="mx-auto w-20 h-20 text-green-500 mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Already Submitted</h2>
+      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-green-500 to-teal-400 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+          <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-6" />
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">Already Submitted</h2>
           
           {user && (
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center mb-6">
               <img 
                 src={user.picture} 
                 alt={user.name} 
-                className="w-12 h-12 rounded-full mr-3"
+                className="w-24 h-24 rounded-full border-4 border-white shadow-md mb-3"
               />
-              <div className="text-left">
-                <p className="font-medium">{user.name}</p>
+              <div className="text-center">
+                <p className="font-semibold text-lg">{user.name}</p>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
             </div>
           )}
           
-          <p className="text-gray-600 mb-6">
+          <p className="text-lg text-gray-600 mb-6">
             You have already completed this survey. 
-            Thank you for your participation!
+            Thank you for your valuable feedback!
           </p>
           
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition mx-auto"
+            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
           >
-            <LogOut size={18} />
+            <LogOut className="w-5 h-5 mr-2" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -325,24 +418,22 @@ function App() {
 
   const renderThankYouScreen = () => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <CheckCircle className="mx-auto w-24 h-24 text-green-500 mb-6" />
+      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-purple-500 to-indigo-600 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+          <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-6" />
           <h2 className="text-3xl font-bold text-gray-800 mb-4">Thank You!</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-lg text-gray-600 mb-6">
             Your survey response has been successfully submitted. 
-            We appreciate your time and feedback.
+            We appreciate your time and valuable feedback.
           </p>
           
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition"
-            >
-              <LogOut size={18} />
-              <span>Sign Out</span>
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
+          >
+            <LogOut className="w-5 h-5 mr-2" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     );
