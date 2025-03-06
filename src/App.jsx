@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause } from 'lucide-react';
+import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import './SurveyStyles.css'; // Make sure this path matches your CSS file location
+import './SurveyStyles.css';
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -15,32 +15,13 @@ function App() {
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPlayButton, setShowPlayButton] = useState(true);
   const [user, setUser] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [profession, setProfession] = useState('');
   const [showProfessionSelect, setShowProfessionSelect] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-    
-  // Handle video end
-  const handleVideoEnd = () => {
-    setShowPlayButton(true);
-    setIsPlaying(false);
-  };
-
-  // Toggle play/pause
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-      setShowPlayButton(!isPlaying);
-    }
-  };
-
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlayButton, setShowPlayButton] = useState(true);
+  
   const videoRef = useRef(null);
   
   // Google Client ID
@@ -52,6 +33,63 @@ function App() {
 
   // Set axios defaults
   axios.defaults.baseURL = API_URL;
+  
+  // Update the video auto-play effect
+  useEffect(() => {
+    // Auto-play video when question changes
+    setIsPlaying(false);
+    setShowPlayButton(true);
+    
+    // Add a small delay to ensure the video element is properly loaded
+    const autoPlayTimer = setTimeout(() => {
+      if (videoRef.current) {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+              setShowPlayButton(false);
+            })
+            .catch(error => {
+              // Auto-play was prevented by the browser
+              console.log('Autoplay prevented:', error);
+              setIsPlaying(false);
+              setShowPlayButton(true);
+            });
+        }
+      }
+    }, 500);
+    
+    return () => clearTimeout(autoPlayTimer);
+  }, [currentIndex]);
+
+  // Handle video end
+  const handleVideoEnd = () => {
+    setShowPlayButton(true);
+    setIsPlaying(false);
+  };
+
+  // Update the toggle play function
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(error => {
+              console.error('Play error:', error);
+              setIsPlaying(false);
+            });
+        }
+      }
+    }
+  };
   
   // Configure axios to include the auth token in all requests
   useEffect(() => {
@@ -202,6 +240,24 @@ function App() {
           localStorage.removeItem('surveyToken');
           return;
         }
+
+              // THIS IS THE AUTO-LOGOUT CODE BLOCK ↓
+        // Check if user has already submitted - if yes, auto-logout on refresh
+        if (decodedToken.hasSubmitted && !showThankYou) {
+          console.log('User has already submitted, logging out on refresh');
+          setTimeout(() => handleLogout(), 3000); // Delay to show the "already submitted" message
+          // Show message before logging out
+          setUser({
+            token,
+            email: decodedToken.email || '',
+            name: decodedToken.name || '',
+            picture: decodedToken.picture || ''
+          });
+          setHasSubmitted(true);
+          return;
+        }
+        // AUTO-LOGOUT CODE ENDS HERE ↑
+
         
         // Set user data from token
         setUser({
@@ -223,11 +279,6 @@ function App() {
     }
   }, []);
   
-  // Reset play button when question changes
-  useEffect(() => {
-    setShowPlayButton(true);
-  }, [currentIndex]);
-
   // Fetch submissions from backend on component mount
   useEffect(() => {
     if (isSubmitted) {
@@ -287,36 +338,76 @@ function App() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setIsLoading(true);
+      setError(null); // Clear any previous errors
       
-      // Send the token to your backend for verification
-      const response = await axios.post('/api/auth/google', {
-        token: credentialResponse.credential
-      });
+      // Implement retry logic with exponential backoff
+      const maxRetries = 3;
+      let retryCount = 0;
+      let delay = 1000; // Start with 1 second delay
       
-      // Store the session token
-      localStorage.setItem('surveyToken', response.data.token);
+      const attemptLogin = async () => {
+        try {
+          // Send the token to your backend for verification
+          const response = await axios.post('/api/auth/google', {
+            token: credentialResponse.credential
+          });
+          
+          // Store the session token
+          localStorage.setItem('surveyToken', response.data.token);
+          
+          // Update user state
+          setUser({
+            token: response.data.token,
+            ...response.data.user
+          });
+          
+          // Check if the user has already submitted
+          setHasSubmitted(response.data.hasSubmitted);
+          
+          // If they haven't submitted and we have their profession, set it
+          if (!response.data.hasSubmitted && response.data.profession) {
+            setProfession(response.data.profession);
+          } else if (!response.data.hasSubmitted) {
+            // Show profession select screen
+            setShowProfessionSelect(true);
+          }
+          
+          return true; // Success
+        } catch (error) {
+          // If we hit a rate limit (429) and haven't exhausted retries
+          if (error.response?.status === 429 && retryCount < maxRetries) {
+            console.log(`Rate limited, retrying in ${delay/1000} seconds... (Attempt ${retryCount + 1}/${maxRetries})`);
+            
+            // Wait for the delay period
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Increase retry count and delay for exponential backoff
+            retryCount++;
+            delay *= 2; // Double the delay each time
+            
+            // Try again
+            return attemptLogin();
+          }
+          
+          // If it's another error or we've exhausted retries, throw the error
+          throw error;
+        }
+      };
       
-      // Update user state
-      setUser({
-        token: response.data.token,
-        ...response.data.user
-      });
-      
-      // Check if the user has already submitted
-      setHasSubmitted(response.data.hasSubmitted);
-      
-      // If they haven't submitted and we have their profession, set it
-      if (!response.data.hasSubmitted && response.data.profession) {
-        setProfession(response.data.profession);
-      } else if (!response.data.hasSubmitted) {
-        // Show profession select screen
-        setShowProfessionSelect(true);
-      }
-      
+      // Start the login attempt process
+      await attemptLogin();
       setIsLoading(false);
     } catch (error) {
       console.error('Google login error:', error);
-      setError('Failed to authenticate with Google. ' + (error.response?.data?.message || error.message));
+      let errorMessage = 'Failed to authenticate with Google. ';
+      
+      if (error.response?.status === 429) {
+        errorMessage += 'You\'ve reached the rate limit. Please wait a few minutes before trying again.';
+      } else {
+        errorMessage += (error.response?.data?.message || error.message);
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -340,8 +431,9 @@ function App() {
     }
   };
   
-  const handleGoogleError = () => {
-    setError('Google sign-in was unsuccessful. Please try again.');
+  const handleGoogleError = (error) => {
+    console.error('Google sign-in error:', error);
+    setError('Google sign-in was unsuccessful. Please try again in a few minutes.');
   };
   
   const handleLogout = () => {
@@ -438,7 +530,19 @@ function App() {
           
           {error && (
             <div className="error-message">
-              {error}
+              <p>{error}</p>
+              {error.includes('429') || error.includes('rate limit') ? (
+                <>
+                  <p className="error-suggestion">This happens when Google's authentication service reaches its limit. Please try again after a few minutes.</p>
+                  <button 
+                    onClick={() => setError(null)} 
+                    className="retry-button"
+                  >
+                    <RefreshCw size={16} className="mr-2" />
+                    Try Again
+                  </button>
+                </>
+              ) : null}
             </div>
           )}
           
@@ -499,7 +603,7 @@ function App() {
                 <div className="profession-icon">
                   {option.icon}
                 </div>
-                <span>{option.label}</span>
+                <span className="profession-label">{option.label}</span>
               </button>
             ))}
           </div>
@@ -520,33 +624,33 @@ function App() {
 
   const renderAlreadySubmitted = () => {
     return (
-      <div className="already-submitted-container">
-        <div className="auth-card">
-          <CheckCircle className="success-icon" size={64} />
-          <h2 className="auth-title">Already Submitted</h2>
+      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-green-500 to-teal-400 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+          <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-6" />
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">Already Submitted</h2>
           
           {user && (
-            <div className="user-profile">
+            <div className="flex flex-col items-center justify-center mb-6">
               <img 
                 src={user.picture} 
                 alt={user.name} 
-                className="user-avatar"
+                className="w-24 h-24 rounded-full border-4 border-white shadow-md mb-3"
               />
-              <div className="user-info">
-                <p className="user-name">{user.name}</p>
-                <p className="user-email">{user.email}</p>
+              <div className="text-center">
+                <p className="font-semibold text-lg">{user.name}</p>
+                <p className="text-sm text-gray-500">{user.email}</p>
               </div>
             </div>
           )}
           
-          <p className="auth-description">
+          <p className="text-lg text-gray-600 mb-6">
             You have already completed this survey. 
             Thank you for your valuable feedback!
           </p>
           
           <button
             onClick={handleLogout}
-            className="logout-button"
+            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
           >
             <LogOut className="w-5 h-5 mr-2" />
             <span>Sign Out</span>
@@ -559,44 +663,34 @@ function App() {
   const renderThankYouScreen = () => {
     return (
       <div className="thank-you-container">
-        <div className="auth-card">
-          <CheckCircle className="success-icon" size={64} />
-          <h2 className="auth-title">Thank You!</h2>
-          <p className="auth-description">
+        <div className="thank-card">
+          <div className="thank-icon-container">
+            <CheckCircle className="thank-icon" size={80} />
+          </div>
+          <h2 className="thank-title">Thank You!</h2>
+          <p className="thank-description">
             Your survey response has been successfully submitted. 
             We appreciate your time and valuable feedback.
           </p>
           
+          {/* <button
+            onClick={() => window.location.reload()}
+            className="restart-button"
+          >
+            <RefreshCw size={18} className="mr-2" />
+            Take Another Survey
+          </button> */}
           <button
             onClick={handleLogout}
-            className="logout-button"
+            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
           >
             <LogOut className="w-5 h-5 mr-2" />
-            <span>Sign Out</span>
+            <span>Take Another Survey</span>
           </button>
         </div>
       </div>
     );
   };
-  
-  useEffect(() => {
-    if (videoRef.current) {
-      const playPromise = videoRef.current.play();
-      
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setShowPlayButton(false);
-          })
-          .catch(error => {
-            console.error('Auto-play failed:', error);
-            setIsPlaying(false);
-            setShowPlayButton(true);
-          });
-      }
-    }
-  }, [currentIndex]); // Re-run when question changes
 
   const renderSurvey = () => {
     return (
@@ -624,39 +718,34 @@ function App() {
         
         <div className="survey-content">
           <div className="survey-card">
-            {/* Question-Specific Video Section */}
-            <div 
-              className="video-container custom-video-controls"
-              onMouseEnter={() => setShowPlayButton(true)}
-              onMouseLeave={() => setShowPlayButton(isPlaying ? false : true)}
-            >
-              <video 
-                key={currentQuestion?.id}
-                src={currentQuestion?.videoSrc}
-                className="video"
-                ref={videoRef}
-                playsInline
-                muted={false}
-                controls={false} // Remove default controls
-                onEnded={handleVideoEnd}
-              />
-              
-              {/* Custom play/pause button that shows on hover */}
-              {showPlayButton && (
-                <div 
-                  className="play-pause-overlay"
-                  onClick={togglePlay}
-                >
+            {/* Add video container */}
+            {currentQuestion?.videoSrc && (
+              <div className="custom-video-controls">
+                <video
+                  ref={videoRef}
+                  src={currentQuestion.videoSrc}
+                  className="video"
+                  onEnded={handleVideoEnd}
+                  playsInline
+                  muted={false}
+                />
+                <div className="play-pause-overlay" onClick={togglePlay}>
                   <div className="play-pause-button">
                     {isPlaying ? (
-                      <Pause size={40} className="play-pause-icon" />
+                      <Pause className="play-pause-icon" size={32} />
                     ) : (
-                      <Play size={40} className="play-pause-icon" />
+                      <Play className="play-pause-icon" size={32} />
                     )}
                   </div>
                 </div>
-              )}
-            </div>
+                {isPlaying && (
+                  <div className="video-playing-indicator">
+                    <div className="video-progress-dot"></div>
+                    <span>Playing</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="question-container">
               <h2 className="question-text">
