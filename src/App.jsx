@@ -1,93 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, CheckCircle, Play, LogOut } from 'lucide-react';
+import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause } from 'lucide-react';
 import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-
-// Inline styles object
-const styles = {
-  authPageContainer: {
-    minHeight: '100vh',
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    background: 'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)',
-    padding: '1rem',
-    position: 'relative',
-    overflow: 'hidden'
-  },
-  authCard: {
-    width: '100%',
-    maxWidth: '450px',
-    background: 'white',
-    borderRadius: '16px',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-    padding: '2.5rem',
-    textAlign: 'center',
-    position: 'relative',
-    zIndex: 10
-  },
-  authTitle: {
-    color: '#333',
-    fontSize: '2rem',
-    fontWeight: 700,
-    marginBottom: '1rem'
-  },
-  authDescription: {
-    color: '#666',
-    fontSize: '1.1rem',
-    lineHeight: 1.5,
-    marginBottom: '2rem'
-  },
-  signinContainer: {
-    margin: '2rem 0',
-    display: 'flex',
-    justifyContent: 'center'
-  },
-  privacyText: {
-    fontSize: '0.85rem',
-    color: '#888',
-    marginTop: '1.5rem',
-    lineHeight: 1.4
-  },
-  shape: {
-    position: 'absolute',
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '50%'
-  },
-  shape1: {
-    width: '100px',
-    height: '100px',
-    top: '15%',
-    left: '15%'
-  },
-  shape2: {
-    width: '150px',
-    height: '150px',
-    top: '70%',
-    left: '80%'
-  },
-  shape3: {
-    width: '70px',
-    height: '70px',
-    top: '30%',
-    right: '20%'
-  },
-  shape4: {
-    width: '120px',
-    height: '120px',
-    bottom: '20%',
-    left: '10%'
-  },
-  errorMessage: {
-    backgroundColor: '#ffebee',
-    color: '#d32f2f',
-    padding: '1rem',
-    borderRadius: '8px',
-    marginBottom: '1.5rem'
-  }
-};
+import './SurveyStyles.css'; // Make sure this path matches your CSS file location
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -102,7 +18,29 @@ function App() {
   const [showPlayButton, setShowPlayButton] = useState(true);
   const [user, setUser] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  
+  const [profession, setProfession] = useState('');
+  const [showProfessionSelect, setShowProfessionSelect] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+    
+  // Handle video end
+  const handleVideoEnd = () => {
+    setShowPlayButton(true);
+    setIsPlaying(false);
+  };
+
+  // Toggle play/pause
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+      setShowPlayButton(!isPlaying);
+    }
+  };
+
   const videoRef = useRef(null);
   
   // Google Client ID
@@ -124,28 +62,130 @@ function App() {
     }
   }, [user]);
 
-  const questions = [
-    {
-      id: 1,
-      questionText: "Do you find yourself procrastinating?",
-      type: "multipleChoice",
-      options: [
-        "Yes, all the time", 
-        "Sometimes", 
-        "No, I always organize well"
-      ],
-      videoSrc: "/typeform-survey/videos/video1.mp4",
-      allowVideoUpload: true
-    },
-    {
-      id: 2,
-      questionText: "What's your main productivity challenge?",
-      type: "text",
-      placeholder: "Describe your biggest productivity hurdle...",
-      videoSrc: "/typeform-survey/videos/video2.mp4",
-      allowVideoUpload: true
-    }
-  ];
+  // Question sets based on profession
+  const questionSets = {
+    student: [
+      {
+        id: 1,
+        questionText: "How many hours do you study per day?",
+        type: "multipleChoice",
+        options: [
+          "Less than 2 hours", 
+          "2-4 hours", 
+          "4-6 hours",
+          "More than 6 hours"
+        ],
+        videoSrc: "/typeform-survey/videos/video1.mp4",
+        allowVideoUpload: true
+      },
+      {
+        id: 2,
+        questionText: "What's your biggest challenge as a student?",
+        type: "text",
+        placeholder: "Describe your biggest academic challenge...",
+        videoSrc: "/typeform-survey/videos/video2.mp4",
+        allowVideoUpload: true
+      }
+    ],
+    
+    itProfessional: [
+      {
+        id: 1,
+        questionText: "How many years of experience do you have in IT?",
+        type: "multipleChoice",
+        options: [
+          "Less than 2 years", 
+          "2-5 years", 
+          "5-10 years",
+          "More than 10 years"
+        ],
+        videoSrc: "/typeform-survey/videos/video1.mp4",
+        allowVideoUpload: true
+      },
+      {
+        id: 2,
+        questionText: "What technology trends are you most excited about?",
+        type: "text",
+        placeholder: "Share your thoughts on emerging technologies...",
+        videoSrc: "/typeform-survey/videos/video2.mp4",
+        allowVideoUpload: true
+      }
+    ],
+    
+    doctor: [
+      {
+        id: 1,
+        questionText: "What medical specialty do you practice?",
+        type: "multipleChoice",
+        options: [
+          "General Practice", 
+          "Surgery", 
+          "Pediatrics",
+          "Other specialty"
+        ],
+        videoSrc: "/typeform-survey/videos/video1.mp4",
+        allowVideoUpload: true
+      },
+      {
+        id: 2,
+        questionText: "What healthcare challenges concern you most?",
+        type: "text",
+        placeholder: "Describe your perspective on healthcare challenges...",
+        videoSrc: "/typeform-survey/videos/video2.mp4",
+        allowVideoUpload: true
+      }
+    ],
+    
+    governmentEmployee: [
+      {
+        id: 1,
+        questionText: "How long have you worked in the public sector?",
+        type: "multipleChoice",
+        options: [
+          "Less than 5 years", 
+          "5-10 years", 
+          "10-20 years",
+          "More than 20 years"
+        ],
+        videoSrc: "/typeform-survey/videos/video1.mp4",
+        allowVideoUpload: true
+      },
+      {
+        id: 2,
+        questionText: "What improvements would you suggest for public services?",
+        type: "text",
+        placeholder: "Share your ideas for improving government services...",
+        videoSrc: "/typeform-survey/videos/video2.mp4",
+        allowVideoUpload: true
+      }
+    ],
+    
+    other: [
+      {
+        id: 1,
+        questionText: "Do you find yourself procrastinating?",
+        type: "multipleChoice",
+        options: [
+          "Yes, all the time", 
+          "Sometimes", 
+          "No, I always organize well"
+        ],
+        videoSrc: "/typeform-survey/videos/video1.mp4",
+        allowVideoUpload: true
+      },
+      {
+        id: 2,
+        questionText: "What's your main productivity challenge?",
+        type: "text",
+        placeholder: "Describe your biggest productivity hurdle...",
+        videoSrc: "/typeform-survey/videos/video2.mp4",
+        allowVideoUpload: true
+      }
+    ]
+  };
+  
+  // Active questions based on selected profession
+  const [questions, setQuestions] = useState(questionSets.other);
 
   // Check user status on component mount
   useEffect(() => {
@@ -195,6 +235,16 @@ function App() {
     }
   }, [isSubmitted]);
   
+  // Update questions when profession changes
+  useEffect(() => {
+    if (profession && questionSets[profession]) {
+      setQuestions(questionSets[profession]);
+      setCurrentIndex(0);
+      setAnswers({});
+      setSelectedAnswer('');
+    }
+  }, [profession]);
+  
   const verifyUserStatus = async (token) => {
     try {
       setIsLoading(true);
@@ -204,6 +254,14 @@ function App() {
       
       setHasSubmitted(response.data.hasSubmitted);
       setIsLoading(false);
+      
+      // If user hasn't submitted and we have their profession saved, set it
+      if (!response.data.hasSubmitted && response.data.profession) {
+        setProfession(response.data.profession);
+      } else if (!response.data.hasSubmitted) {
+        // Show profession select screen if they haven't chosen one yet
+        setShowProfessionSelect(true);
+      }
     } catch (error) {
       console.error('Error verifying user status:', error);
       setUser(null);
@@ -247,11 +305,38 @@ function App() {
       // Check if the user has already submitted
       setHasSubmitted(response.data.hasSubmitted);
       
+      // If they haven't submitted and we have their profession, set it
+      if (!response.data.hasSubmitted && response.data.profession) {
+        setProfession(response.data.profession);
+      } else if (!response.data.hasSubmitted) {
+        // Show profession select screen
+        setShowProfessionSelect(true);
+      }
+      
       setIsLoading(false);
     } catch (error) {
       console.error('Google login error:', error);
       setError('Failed to authenticate with Google. ' + (error.response?.data?.message || error.message));
       setIsLoading(false);
+    }
+  };
+  
+  const handleProfessionSelect = (selectedProfession) => {
+    setProfession(selectedProfession);
+    setShowProfessionSelect(false);
+    
+    // Save profession to backend
+    saveProfession(selectedProfession);
+  };
+  
+  const saveProfession = async (selectedProfession) => {
+    try {
+      await axios.post('/api/user/profession', {
+        profession: selectedProfession
+      });
+    } catch (error) {
+      console.error('Error saving profession:', error);
+      // Continue anyway, as this is not critical
     }
   };
   
@@ -263,6 +348,8 @@ function App() {
     localStorage.removeItem('surveyToken');
     setUser(null);
     setHasSubmitted(false);
+    setProfession('');
+    setShowProfessionSelect(false);
     resetSurvey();
   };
 
@@ -301,6 +388,7 @@ function App() {
       const formData = new FormData();
       
       formData.append('answers', JSON.stringify(finalAnswers));
+      formData.append('profession', profession);
   
       Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
         formData.append(`video-${questionId}`, videoData.file);
@@ -332,30 +420,29 @@ function App() {
     }
   };
 
-// Update your renderGoogleLogin function in App.jsx
-
   const renderGoogleLogin = () => {
     return (
-      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-blue-700 to-indigo-500 p-4 relative overflow-hidden">
-        {/* Animated shapes - You'd need to add the animation in your CSS file */}
-        <div className="absolute top-1/4 left-1/4 w-24 h-24 rounded-full bg-white bg-opacity-10"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-32 h-32 rounded-full bg-white bg-opacity-10"></div>
-        <div className="absolute top-1/3 right-1/3 w-16 h-16 rounded-full bg-white bg-opacity-10"></div>
-        <div className="absolute bottom-1/3 left-1/3 w-20 h-20 rounded-full bg-white bg-opacity-10"></div>
+      <div className="auth-page-container">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+        </div>
         
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center relative z-10">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Welcome to Our Survey</h2>
-          <p className="text-lg text-gray-600 mb-6">
+        <div className="auth-card">
+          <h2 className="auth-title">Welcome to Our Survey</h2>
+          <p className="auth-description">
             Your feedback is valuable to us! Sign in with Google to share your thoughts and help us improve.
           </p>
           
           {error && (
-            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+            <div className="error-message">
               {error}
             </div>
           )}
           
-          <div className="flex justify-center my-8">
+          <div className="signin-container">
             <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -369,7 +456,7 @@ function App() {
             </GoogleOAuthProvider>
           </div>
           
-          <p className="text-sm text-gray-500 mt-6">
+          <p className="privacy-text">
             We only use your email to prevent duplicate submissions.
             We don't share your information with third parties.
           </p>
@@ -378,35 +465,88 @@ function App() {
     );
   };
 
+  const renderProfessionSelect = () => {
+    const professionOptions = [
+      { id: 'student', label: 'Student', icon: <User className="w-8 h-8" /> },
+      { id: 'itProfessional', label: 'IT Professional', icon: <Briefcase className="w-8 h-8" /> },
+      { id: 'doctor', label: 'Doctor', icon: <Stethoscope className="w-8 h-8" /> },
+      { id: 'governmentEmployee', label: 'Government Employee', icon: <Building2 className="w-8 h-8" /> },
+      { id: 'other', label: 'Other', icon: <Users className="w-8 h-8" /> }
+    ];
+    
+    return (
+      <div className="auth-page-container">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+        </div>
+        
+        <div className="auth-card profession-card">
+          <h2 className="auth-title">Tell us about yourself</h2>
+          <p className="auth-description">
+            Please select your profession to help us personalize your survey experience.
+          </p>
+          
+          <div className="profession-options">
+            {professionOptions.map(option => (
+              <button
+                key={option.id}
+                className="profession-option"
+                onClick={() => handleProfessionSelect(option.id)}
+              >
+                <div className="profession-icon">
+                  {option.icon}
+                </div>
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-6 flex items-center justify-center">
+            <button 
+              onClick={handleLogout}
+              className="logout-button"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderAlreadySubmitted = () => {
     return (
-      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-green-500 to-teal-400 p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
-          <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-6" />
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Already Submitted</h2>
+      <div className="already-submitted-container">
+        <div className="auth-card">
+          <CheckCircle className="success-icon" size={64} />
+          <h2 className="auth-title">Already Submitted</h2>
           
           {user && (
-            <div className="flex flex-col items-center justify-center mb-6">
+            <div className="user-profile">
               <img 
                 src={user.picture} 
                 alt={user.name} 
-                className="w-24 h-24 rounded-full border-4 border-white shadow-md mb-3"
+                className="user-avatar"
               />
-              <div className="text-center">
-                <p className="font-semibold text-lg">{user.name}</p>
-                <p className="text-sm text-gray-500">{user.email}</p>
+              <div className="user-info">
+                <p className="user-name">{user.name}</p>
+                <p className="user-email">{user.email}</p>
               </div>
             </div>
           )}
           
-          <p className="text-lg text-gray-600 mb-6">
+          <p className="auth-description">
             You have already completed this survey. 
             Thank you for your valuable feedback!
           </p>
           
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
+            className="logout-button"
           >
             <LogOut className="w-5 h-5 mr-2" />
             <span>Sign Out</span>
@@ -418,18 +558,18 @@ function App() {
 
   const renderThankYouScreen = () => {
     return (
-      <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-purple-500 to-indigo-600 p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
-          <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-6" />
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Thank You!</h2>
-          <p className="text-lg text-gray-600 mb-6">
+      <div className="thank-you-container">
+        <div className="auth-card">
+          <CheckCircle className="success-icon" size={64} />
+          <h2 className="auth-title">Thank You!</h2>
+          <p className="auth-description">
             Your survey response has been successfully submitted. 
             We appreciate your time and valuable feedback.
           </p>
           
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
+            className="logout-button"
           >
             <LogOut className="w-5 h-5 mr-2" />
             <span>Sign Out</span>
@@ -438,24 +578,43 @@ function App() {
       </div>
     );
   };
+  
+  useEffect(() => {
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setShowPlayButton(false);
+          })
+          .catch(error => {
+            console.error('Auto-play failed:', error);
+            setIsPlaying(false);
+            setShowPlayButton(true);
+          });
+      }
+    }
+  }, [currentIndex]); // Re-run when question changes
 
   const renderSurvey = () => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
+      <div className="survey-container">
         {/* User header */}
         {user && (
-          <div className="bg-white shadow px-4 py-2 flex justify-between items-center">
-            <div className="flex items-center">
+          <div className="user-header">
+            <div className="user-header-info">
               <img 
                 src={user.picture} 
                 alt={user.name} 
-                className="w-8 h-8 rounded-full mr-2"
+                className="user-header-avatar"
               />
-              <span className="font-medium">{user.name}</span>
+              <span className="user-header-name">{user.name}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-600 hover:text-gray-800 flex items-center text-sm"
+              className="user-header-logout"
             >
               <LogOut size={16} className="mr-1" />
               Sign Out
@@ -463,57 +622,54 @@ function App() {
           </div>
         )}
         
-        <div className="flex-grow flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="survey-content">
+          <div className="survey-card">
             {/* Question-Specific Video Section */}
-            <div className="relative w-full overflow-hidden" style={{ height: 'min(80vh, 500px)' }}>
+            <div 
+              className="video-container custom-video-controls"
+              onMouseEnter={() => setShowPlayButton(true)}
+              onMouseLeave={() => setShowPlayButton(isPlaying ? false : true)}
+            >
               <video 
-                key={currentQuestion.id}
-                src={currentQuestion.videoSrc}
-                className="absolute inset-0 w-full h-full object-contain"
+                key={currentQuestion?.id}
+                src={currentQuestion?.videoSrc}
+                className="video"
                 ref={videoRef}
                 playsInline
-                controls
+                muted={false}
+                controls={false} // Remove default controls
+                onEnded={handleVideoEnd}
               />
+              
+              {/* Custom play/pause button that shows on hover */}
               {showPlayButton && (
                 <div 
-                  className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer z-10"
-                  onClick={() => {
-                    if (videoRef.current) {
-                      const playPromise = videoRef.current.play();
-                      if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                          setShowPlayButton(false);
-                        }).catch(error => {
-                          console.error('Play error:', error);
-                          // Keep play button visible if play fails
-                        });
-                      }
-                    }
-                  }}
+                  className="play-pause-overlay"
+                  onClick={togglePlay}
                 >
-                  <div className="w-20 h-20 rounded-full bg-white bg-opacity-80 flex items-center justify-center">
-                    <Play size={40} className="text-blue-500 ml-2" />
+                  <div className="play-pause-button">
+                    {isPlaying ? (
+                      <Pause size={40} className="play-pause-icon" />
+                    ) : (
+                      <Play size={40} className="play-pause-icon" />
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-8 space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {currentQuestion.questionText}
+            <div className="question-container">
+              <h2 className="question-text">
+                {currentQuestion?.questionText}
               </h2>
 
-              {currentQuestion.type === "multipleChoice" && (
-                <div className="space-y-4">
+              {currentQuestion?.type === "multipleChoice" && (
+                <div className="options-container">
                   {currentQuestion.options.map((option) => (
                     <button
                       key={option}
                       onClick={() => handleAnswer(option)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-300 
-                        ${selectedAnswer === option 
-                          ? 'bg-blue-500 text-white border-blue-600' 
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'}`}
+                      className={`option-button ${selectedAnswer === option ? 'selected' : ''}`}
                     >
                       {option}
                     </button>
@@ -521,36 +677,33 @@ function App() {
                 </div>
               )}
 
-              {currentQuestion.type === "text" && (
-                <div className="space-y-4">
+              {currentQuestion?.type === "text" && (
+                <div className="text-answer-container">
                   <textarea
                     value={selectedAnswer}
                     onChange={(e) => setSelectedAnswer(e.target.value)}
                     placeholder={currentQuestion.placeholder}
-                    className="w-full p-4 border-2 border-gray-200 rounded-lg min-h-[120px] focus:border-blue-400 focus:outline-none transition-all"
+                    className="text-answer-input"
                   />
                 </div>
               )}
 
-              <div className="flex justify-end">
+              <div className="navigation-container">
                 <button
                   onClick={() => handleAnswer(selectedAnswer)}
                   disabled={!selectedAnswer || isLoading}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all duration-300 
-                    ${selectedAnswer && !isLoading
-                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  className={`next-button ${(!selectedAnswer || isLoading) ? 'disabled' : ''}`}
                 >
                   <span>
                     {isLoading ? 'Processing...' : currentIndex < questions.length - 1 ? 'Next' : 'Submit'}
                   </span>
-                  {!isLoading && <ChevronRight className="w-5 h-5" />}
+                  {!isLoading && <ChevronRight className="next-icon" />}
                 </button>
               </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+              <div className="progress-container">
                 <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-500" 
+                  className="progress-bar"
                   style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
                 />
               </div>
@@ -563,34 +716,37 @@ function App() {
 
   const renderSubmissions = () => {
     return (
-      <div className="container mx-auto p-6">
-        <h2 className="text-2xl font-bold mb-4">Survey Submissions</h2>
+      <div className="submissions-container">
+        <h2 className="submissions-title">Survey Submissions</h2>
         {isLoading ? (
           <p>Loading submissions...</p>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <p className="error-text">{error}</p>
         ) : submissions.length === 0 ? (
           <p>No submissions found.</p>
         ) : (
           submissions.map((submission, index) => (
             <div 
               key={submission._id || index} 
-              className="bg-white shadow-md rounded-lg p-6 mb-4"
+              className="submission-card"
             >
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="submission-header">
                 Submission #{index + 1}
               </h3>
-              <p className="text-gray-600 mb-2">
+              <p className="submission-info">
                 Email: {submission.email}
               </p>
-              <p className="text-gray-600 mb-2">
+              <p className="submission-info">
+                Profession: {submission.profession}
+              </p>
+              <p className="submission-info">
                 Submitted on: {new Date(submission.timestamp).toLocaleString()}
               </p>
               
               {questions.map((question) => (
-                <div key={question.id} className="mb-3">
-                  <p className="font-medium">{question.questionText}</p>
-                  <p className="text-gray-700">
+                <div key={question.id} className="submission-answer">
+                  <p className="submission-question">{question.questionText}</p>
+                  <p className="submission-response">
                     {submission.answers[question.id] || submission.answers[question.id.toString()] || 'No answer'}
                   </p>
                 </div>
@@ -600,9 +756,9 @@ function App() {
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition mt-4"
+          className="logout-button"
         >
-          <LogOut size={18} />
+          <LogOut className="w-5 h-5 mr-2" />
           <span>Sign Out</span>
         </button>
       </div>
@@ -612,11 +768,9 @@ function App() {
   // Show loading indicator while checking user status
   if (isLoading && !user && !error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -628,22 +782,27 @@ function App() {
       return renderGoogleLogin();
     }
     
-    // Step 2: If logged in but already submitted, show already submitted screen
+    // Step 2: If logged in but need to select profession
+    if (showProfessionSelect) {
+      return renderProfessionSelect();
+    }
+    
+    // Step 3: If logged in but already submitted, show already submitted screen
     if (hasSubmitted && !showThankYou) {
       return renderAlreadySubmitted();
     }
     
-    // Step 3: If just submitted, show thank you screen
+    // Step 4: If just submitted, show thank you screen
     if (showThankYou) {
       return renderThankYouScreen();
     }
     
-    // Step 4: If viewing submissions
+    // Step 5: If viewing submissions
     if (isSubmitted) {
       return renderSubmissions();
     }
     
-    // Step 5: Otherwise, show the survey
+    // Step 6: Otherwise, show the survey
     return renderSurvey();
   };
 
