@@ -589,10 +589,10 @@ function App() {
           <div className="mt-6">
             <button
               onClick={toggleDashboard}
-              className="flex items-center mx-auto bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded transition-colors"
+              className="flex items-center mx-auto bg-orange-200 hover:bg-orange-300 text-gray-700 font-medium py-2 px-4 rounded transition-colors"
             >
               <BarChart2 size={18} className="mr-2" />
-              {showDashboard ? "Return to Survey" : "View Survey Results"}
+              {showDashboard ? "Return to Survey" : "Results"}
             </button>
           </div>
         </div>
@@ -895,24 +895,49 @@ function App() {
     );
   }
 
+  // // Render dashboard if showDashboard is true
+  // if (showDashboard) {
+  //   return (
+  //     <div>
+  //       <div className="bg-white p-3 shadow-sm flex justify-between items-center mb-4">
+  //         <h1 className="text-xl font-bold">Survey Analytics Dashboard</h1>
+  //         <button 
+  //           onClick={toggleDashboard}
+  //           className="flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
+  //         >
+  //           Return to Survey
+  //         </button>
+  //       </div>
+  //       <SurveyDashboard />
+  //     </div>
+  //   );
+  // }
+
   // Render dashboard if showDashboard is true
   if (showDashboard) {
     return (
-      <div>
-        <div className="bg-white p-3 shadow-sm flex justify-between items-center mb-4">
-          <h1 className="text-xl font-bold">Survey Analytics Dashboard</h1>
+      <div className="bg-cover bg-center min-h-screen" style={{ backgroundImage: "url('https://picsum.photos/1920/1080')" }}>
+        <div className="bg-white/80 backdrop-blur-sm p-1 pl-5 pr-4 shadow-sm flex justify-between items-center mb-4">
+          <div className="flex items-center">
+            <img 
+              src="/typeform-survey/images/DigiBrainLogo.jpeg" 
+              alt="Company Logo" 
+              className="h-12 object-contain rounded-sm" 
+            />
+          </div>
           <button 
             onClick={toggleDashboard}
-            className="flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
+            className="flex items-center bg-orange-800 hover:bg-orange-900 text-white py-2 px-4 rounded transition-colors"
           >
             Return to Survey
           </button>
         </div>
-        <SurveyDashboard />
+        <div className="container mx-auto px-4">
+          <SurveyDashboard />
+        </div>
       </div>
     );
   }
-
   // Determine what to render based on the current state
   const renderContent = () => {
     // Step 1: If not logged in, show Google login
@@ -945,7 +970,7 @@ function App() {
   };
 
   return (
-    <div>
+     <div className="bg-cover bg-center min-h-screen" style={{ backgroundImage: "url('https://picsum.photos/1920/1080')" }}>
       {renderContent()}
     </div>
   );
