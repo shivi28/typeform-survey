@@ -3,65 +3,31 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
+import { questionSets } from './questions';
 
 const SurveyDashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedProfession, setSelectedProfession] = useState('governmentEmployee');
+  const [selectedProfession, setSelectedProfession] = useState('student');
   const [activeTab, setActiveTab] = useState('charts');
 
   // Get API URL from environment variables or use default
   const API_URL = import.meta.env.VITE_API_URL || 'https://your-backend-url.com';
 
   // Define colors for charts - used for pie chart
-  const COLORS = ['#4299E1', '#68D391', '#F6AD55', '#FC8181', '#9F7AEA', '#63B3ED'];
+  const COLORS = ['#4F46E5', '#7C3AED', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#F97316'];
   
-  // Define colors for response options - used for bar charts
-  const RESPONSE_COLORS = {
-    // For time-based responses
-    "Less than 5 years": "#4F46E5", // Indigo
-    "5-10 years": "#7C3AED", // Violet
-    "10-20 years": "#EC4899", // Pink
-    "More than 20 years": "#EF4444", // Red
+  // Function to generate a color based on the option name
+  const getColorForOption = (option) => {
+    // Hash function to generate a consistent index for the same option
+    const hash = option.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
     
-    // For hour-based responses
-    "Less than 2 hours": "#4F46E5",
-    "2-4 hours": "#7C3AED",
-    "4-6 hours": "#EC4899",
-    "More than 6 hours": "#EF4444",
-    
-    // For general responses
-    "Yes, all the time": "#4F46E5",
-    "Sometimes": "#7C3AED",
-    "No, I always organize well": "#EC4899",
-    
-    // For departments
-    "Administration": "#4F46E5",
-    "Health": "#7C3AED",
-    "Education": "#EC4899",
-    "Finance": "#EF4444",
-    "Other": "#F59E0B",
-    
-    // For medical specialties
-    "General Practice": "#4F46E5",
-    "Surgery": "#7C3AED",
-    "Pediatrics": "#EC4899",
-    "Other specialty": "#EF4444",
-    
-    // For technologies
-    "Front-end": "#4F46E5",
-    "Back-end": "#7C3AED",
-    "Full stack": "#EC4899", 
-    "DevOps": "#EF4444",
-    "Data": "#F59E0B",
-    
-    // For study methods
-    "Reading": "#4F46E5",
-    "Practice problems": "#7C3AED",
-    "Group study": "#EC4899",
-    "Video lectures": "#EF4444",
-    "Flashcards": "#F59E0B"
+    // Use the hash to get a consistent color index
+    const index = Math.abs(hash) % COLORS.length;
+    return COLORS[index];
   };
 
   useEffect(() => {
@@ -88,10 +54,13 @@ const SurveyDashboard = () => {
   // Get unique professions
   const professions = data.length > 0 
     ? [...new Set(data.map(item => item.profession))]
-    : ['student', 'governmentEmployee'];
+    : Object.keys(questionSets);
 
   // Filter data by selected profession
-  const filteredData = data.filter(item => item.profession === selectedProfession);
+  const filteredData = data.filter(item => {
+    console.log('Filtering item:', item.profession, 'Selected:', selectedProfession);
+    return item.profession === selectedProfession;
+  });
 
   // Process data for profession distribution (pie chart)
   const professionDistributionData = React.useMemo(() => {
@@ -118,82 +87,22 @@ const SurveyDashboard = () => {
     return labels[profession] || profession;
   }
 
-  // Get questions and their possible answers for the selected profession
+  // Get questions for the selected profession from questionSets
   const getQuestionsForProfession = (profession) => {
-    const questionSets = {
-      student: [
-        { 
-          id: 1, 
-          text: "How many hours do you study per day?",
-          options: ["Less than 2 hours", "2-4 hours", "4-6 hours", "More than 6 hours"]
-        },
-        { 
-          id: 3, 
-          text: "What study methods do you prefer?",
-          options: ["Reading", "Practice problems", "Group study", "Video lectures", "Flashcards"]
-        }
-      ],
-      itProfessional: [
-        { 
-          id: 1, 
-          text: "How many years of experience do you have in IT?",
-          options: ["Less than 5 years", "5-10 years", "10-20 years", "More than 20 years"]
-        },
-        { 
-          id: 3, 
-          text: "Which technologies do you use most often?",
-          options: ["Front-end", "Back-end", "Full stack", "DevOps", "Data"]
-        }
-      ],
-      doctor: [
-        { 
-          id: 1, 
-          text: "What medical specialty do you practice?",
-          options: ["General Practice", "Surgery", "Pediatrics", "Other specialty"]
-        },
-        { 
-          id: 3, 
-          text: "How many patients do you see per week?",
-          options: ["Less than 20", "20-50", "50-100", "More than 100"]
-        }
-      ],
-      governmentEmployee: [
-        { 
-          id: 1, 
-          text: "How long have you worked in the public sector?",
-          options: ["Less than 5 years", "5-10 years", "10-20 years", "More than 20 years"]
-        },
-        { 
-          id: 3, 
-          text: "What department do you work in?",
-          options: ["Administration", "Health", "Education", "Finance", "Other"]
-        }
-      ],
-      other: [
-        { 
-          id: 1, 
-          text: "Do you find yourself procrastinating?",
-          options: ["Yes, all the time", "Sometimes", "No, I always organize well"]
-        },
-        { 
-          id: 3, 
-          text: "How many hours do you work per week?",
-          options: ["Less than 20", "20-40", "40-60", "More than 60"]
-        }
-      ]
-    };
-    
     return questionSets[profession] || [];
   };
 
   // Get response data for a specific question in the format needed for the chart
   const getQuestionResponseData = (question) => {
+    console.log('Processing question:', question);
+    console.log('Filtered data:', filteredData);
+
     if (filteredData.length === 0) {
       // Return the options with zero counts for empty data
       return question.options.map(option => ({
         name: option,
         value: 0,
-        color: RESPONSE_COLORS[option] || '#888888'
+        color: getColorForOption(option)
       }));
     }
 
@@ -208,19 +117,39 @@ const SurveyDashboard = () => {
 
     // Count responses for this question
     const responseCounts = filteredData.reduce((acc, submission) => {
-      const answer = submission.answers[question.id];
-      if (answer && acc.hasOwnProperty(answer)) {
-        acc[answer] += 1;
+      // Handle both string and number IDs
+      const answer = submission.answers[`common_${question.id}`] || submission.answers[question.id];
+      console.log('Question ID:', question.id);
+      console.log('Looking for answer with key:', `common_${question.id}`);
+      console.log('Submission answers:', submission.answers);
+      console.log('Current answer:', answer);
+
+      if (answer) {
+        // Handle both single answers and arrays (for multiple choice)
+        if (Array.isArray(answer)) {
+          answer.forEach(a => {
+            if (acc.hasOwnProperty(a)) {
+              acc[a] += 1;
+            }
+          });
+        } else if (acc.hasOwnProperty(answer)) {
+          acc[answer] += 1;
+        }
       }
       return acc;
     }, {...initialCounts});
 
+    console.log('Response counts:', responseCounts);
+
     // Convert to array format for chart
-    return options.map(option => ({
+    const chartData = options.map(option => ({
       name: option,
       value: responseCounts[option] || 0,
-      color: RESPONSE_COLORS[option] || '#888888'
+      color: getColorForOption(option)
     }));
+
+    console.log('Chart data:', chartData);
+    return chartData;
   };
 
   // Render vertical bar chart for a question
@@ -236,20 +165,22 @@ const SurveyDashboard = () => {
     const yAxisDomain = [0, Math.ceil(maxCount * 1.2)]; // Add 20% headroom
   
     return (
-      <div className="h-72 w-full mt-6"> {/* Added mt-6 for more top margin */}
+      <div className="h-72 w-full mt-6">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={questionData}
-            margin={{ top: 60, right: 10, left: 20, bottom: 10 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            barCategoryGap={20}
           >
-            {<CartesianGrid strokeDasharray="1 1" /> }
+            <CartesianGrid strokeDasharray="3 3" vertical={true} />
             <XAxis 
               dataKey="name" 
-              angle={-35} 
-              textAnchor="end"
-              height={100}
-              tick={{ fontSize: 12 }}
-              interval={0} // Force all labels to show
+              hide={false}
+              axisLine={true}
+              tickLine={true}
+              tick={false}
+              interval={0}
+              padding={{ left: 20, right: 20 }}
             />
             <YAxis 
               allowDecimals={false}
@@ -265,6 +196,13 @@ const SurveyDashboard = () => {
             <Tooltip 
               formatter={(value) => [`${value} response${value !== 1 ? 's' : ''}`, 'Count']}
               labelFormatter={(value) => `Option: ${value}`}
+              contentStyle={{
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '8px'
+              }}
+              cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
             />
             <Bar 
               dataKey="value"
@@ -292,7 +230,7 @@ const SurveyDashboard = () => {
       <div className="h-72 w-full flex flex-col justify-center">
         <div className="space-y-4">
           {options.map(option => {
-            const color = RESPONSE_COLORS[option] || '#888888';
+            const color = getColorForOption(option);
             const response = responseData.find(item => item.name === option);
             const count = response ? response.value : 0;
             
@@ -304,7 +242,7 @@ const SurveyDashboard = () => {
                 ></div>
                 <div className="flex justify-between w-full">
                   <span className="text-sm font-medium text-gray-700">{option}</span>
-                  {/* <span className="text-sm font-bold text-gray-900 ml-2">{count} response{count !== 1 ? 's' : ''}</span> */}
+                  <span className="text-sm font-bold text-gray-900 ml-2">{count} response{count !== 1 ? 's' : ''}</span>
                 </div>
               </div>
             );
@@ -358,7 +296,7 @@ const SurveyDashboard = () => {
           <p className="text-3xl font-bold text-blue-600">{data.length}</p>
         </div>
         <div className="bg-green-100 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-green-800">Unique Professions voted</h3>
+          <h3 className="text-lg font-semibold text-green-800">Unique Professions</h3>
           <p className="text-3xl font-bold text-green-600">
             {professions.length}
           </p>
@@ -387,7 +325,7 @@ const SurveyDashboard = () => {
           <div key={question.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100">
             {/* Question header */}
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-800">{question.text}</h3>
+              <h3 className="text-xl font-bold text-gray-800">{question.questionText}</h3>
             </div>
             
             {/* Two-column layout */}
