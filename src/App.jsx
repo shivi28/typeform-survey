@@ -5,11 +5,13 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import './SurveyStyles.css';
 import SurveyDashboard from './SurveyDashboard';
+import { questionSets } from './questions';
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selectedAnswer, setSelectedAnswer] = useState('');
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [uploadedVideos, setUploadedVideos] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
@@ -102,128 +104,6 @@ function App() {
     }
   }, [user]);
 
-  // Question sets based on profession
-  const questionSets = {
-    student: [
-      {
-        id: 1,
-        questionText: "How many hours do you study per day?",
-        type: "multipleChoice",
-        options: [
-          "Less than 2 hours", 
-          "2-4 hours", 
-          "4-6 hours",
-          "More than 6 hours"
-        ],
-        videoSrc: "/typeform-survey/videos/video1.mp4",
-        allowVideoUpload: true
-      },
-      {
-        id: 2,
-        questionText: "What's your biggest challenge as a student?",
-        type: "text",
-        placeholder: "Describe your biggest academic challenge...",
-        videoSrc: "/typeform-survey/videos/video2.mp4",
-        allowVideoUpload: true
-      }
-    ],
-    
-    itProfessional: [
-      {
-        id: 1,
-        questionText: "How many years of experience do you have in IT?",
-        type: "multipleChoice",
-        options: [
-          "Less than 2 years", 
-          "2-5 years", 
-          "5-10 years",
-          "More than 10 years"
-        ],
-        videoSrc: "/typeform-survey/videos/video1.mp4",
-        allowVideoUpload: true
-      },
-      {
-        id: 2,
-        questionText: "What technology trends are you most excited about?",
-        type: "text",
-        placeholder: "Share your thoughts on emerging technologies...",
-        videoSrc: "/typeform-survey/videos/video2.mp4",
-        allowVideoUpload: true
-      }
-    ],
-    
-    doctor: [
-      {
-        id: 1,
-        questionText: "What medical specialty do you practice?",
-        type: "multipleChoice",
-        options: [
-          "General Practice", 
-          "Surgery", 
-          "Pediatrics",
-          "Other specialty"
-        ],
-        videoSrc: "/typeform-survey/videos/video1.mp4",
-        allowVideoUpload: true
-      },
-      {
-        id: 2,
-        questionText: "What healthcare challenges concern you most?",
-        type: "text",
-        placeholder: "Describe your perspective on healthcare challenges...",
-        videoSrc: "/typeform-survey/videos/video2.mp4",
-        allowVideoUpload: true
-      }
-    ],
-    
-    governmentEmployee: [
-      {
-        id: 1,
-        questionText: "How long have you worked in the public sector?",
-        type: "multipleChoice",
-        options: [
-          "Less than 5 years", 
-          "5-10 years", 
-          "10-20 years",
-          "More than 20 years"
-        ],
-        videoSrc: "/typeform-survey/videos/video1.mp4",
-        allowVideoUpload: true
-      },
-      {
-        id: 2,
-        questionText: "What improvements would you suggest for public services?",
-        type: "text",
-        placeholder: "Share your ideas for improving government services...",
-        videoSrc: "/typeform-survey/videos/video2.mp4",
-        allowVideoUpload: true
-      }
-    ],
-    
-    other: [
-      {
-        id: 1,
-        questionText: "Do you find yourself procrastinating?",
-        type: "multipleChoice",
-        options: [
-          "Yes, all the time", 
-          "Sometimes", 
-          "No, I always organize well"
-        ],
-        videoSrc: "/typeform-survey/videos/video1.mp4",
-        allowVideoUpload: true
-      },
-      {
-        id: 2,
-        questionText: "What's your main productivity challenge?",
-        type: "text",
-        placeholder: "Describe your biggest productivity hurdle...",
-        videoSrc: "/typeform-survey/videos/video2.mp4",
-        allowVideoUpload: true
-      }
-    ]
-  };
-  
   // Active questions based on selected profession
   const [questions, setQuestions] = useState(questionSets.other);
 
@@ -457,6 +337,7 @@ function App() {
     setCurrentIndex(0);
     setAnswers({});
     setSelectedAnswer('');
+    setSelectedAnswers([]);
     setUploadedVideos({});
     setIsSubmitted(false);
     setShowThankYou(false);
@@ -480,18 +361,52 @@ function App() {
   const currentQuestion = questions[currentIndex];
 
   const handleAnswer = (answer) => {
-    const newAnswers = { 
-      ...answers, 
-      [currentQuestion.id]: answer 
-    };
-    setAnswers(newAnswers);
-    setSelectedAnswer(answer);
+    if (currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple) {
+      // Handle multiple selection
+      let newSelectedAnswers;
+      if (selectedAnswers.includes(answer)) {
+        // Remove the answer if it's already selected
+        newSelectedAnswers = selectedAnswers.filter(a => a !== answer);
+      } else {
+        // Add the answer if it's not selected
+        newSelectedAnswers = [...selectedAnswers, answer];
+      }
+      setSelectedAnswers(newSelectedAnswers);
+      setSelectedAnswer(newSelectedAnswers.join(', ')); // For display purposes
+    } else {
+      // Handle single selection or text input
+      const newAnswers = { 
+        ...answers, 
+        [currentQuestion.id]: answer 
+      };
+      setAnswers(newAnswers);
+      setSelectedAnswer(answer);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple) {
+      // For multiple choice questions, store the array of selected answers
+      const newAnswers = {
+        ...answers,
+        [currentQuestion.id]: selectedAnswers
+      };
+      setAnswers(newAnswers);
+    } else {
+      // For single choice or text questions
+      const newAnswers = {
+        ...answers,
+        [currentQuestion.id]: selectedAnswer
+      };
+      setAnswers(newAnswers);
+    }
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer('');
+      setSelectedAnswers([]);
     } else {
-      handleSubmit(newAnswers);
+      handleSubmit(answers);
     }
   };
 
@@ -500,7 +415,15 @@ function App() {
       setIsLoading(true);
       const formData = new FormData();
       
-      formData.append('answers', JSON.stringify(finalAnswers));
+      // Include the current question's answer in the final submission
+      const allAnswers = {
+        ...finalAnswers,
+        [currentQuestion.id]: currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple
+          ? selectedAnswers
+          : selectedAnswer
+      };
+      
+      formData.append('answers', JSON.stringify(allAnswers));
       formData.append('profession', profession);
   
       Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
@@ -508,6 +431,7 @@ function App() {
       });
   
       console.log('Submitting survey to:', `${API_URL}/api/submit-survey`);
+      console.log('Submitting answers:', allAnswers); // Add this line for debugging
       const response = await axios.post(
         '/api/submit-survey', 
         formData, 
@@ -789,8 +713,21 @@ function App() {
                     <button
                       key={option}
                       onClick={() => handleAnswer(option)}
-                      className={`option-button ${selectedAnswer === option ? 'selected' : ''}`}
+                      className={`option-button ${
+                        currentQuestion.allowMultiple
+                          ? selectedAnswers.includes(option)
+                            ? 'selected'
+                            : ''
+                          : selectedAnswer === option
+                            ? 'selected'
+                            : ''
+                      }`}
                     >
+                      {currentQuestion.allowMultiple && (
+                        <span className="checkbox">
+                          {selectedAnswers.includes(option) ? '✓' : ''}
+                        </span>
+                      )}
                       {option}
                     </button>
                   ))}
@@ -810,9 +747,19 @@ function App() {
 
               <div className="navigation-container">
                 <button
-                  onClick={() => handleAnswer(selectedAnswer)}
-                  disabled={!selectedAnswer || isLoading}
-                  className={`next-button ${(!selectedAnswer || isLoading) ? 'disabled' : ''}`}
+                  onClick={handleNext}
+                  disabled={
+                    (currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple && selectedAnswers.length === 0) ||
+                    (!currentQuestion.allowMultiple && !selectedAnswer) ||
+                    isLoading
+                  }
+                  className={`next-button ${
+                    ((currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple && selectedAnswers.length === 0) ||
+                    (!currentQuestion.allowMultiple && !selectedAnswer) ||
+                    isLoading)
+                      ? 'disabled'
+                      : ''
+                  }`}
                 >
                   <span>
                     {isLoading ? 'Processing...' : currentIndex < questions.length - 1 ? 'Next' : 'Submit'}
