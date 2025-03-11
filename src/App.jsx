@@ -527,10 +527,10 @@ function App() {
   const renderProfessionSelect = () => {
     const professionOptions = [
       { id: 'student', label: 'Student', icon: <User className="w-8 h-8" /> },
-      { id: 'itProfessional', label: 'IT Professional', icon: <Briefcase className="w-8 h-8" /> },
-      { id: 'doctor', label: 'Doctor', icon: <Stethoscope className="w-8 h-8" /> },
-      { id: 'governmentEmployee', label: 'Government Employee', icon: <Building2 className="w-8 h-8" /> },
-      { id: 'other', label: 'Other', icon: <Users className="w-8 h-8" /> }
+      { id: 'softwareEngineer', label: 'Software Engineers', icon: <Briefcase className="w-8 h-8" /> },
+      { id: 'manager', label: 'Managers', icon: <Users className="w-8 h-8" /> },
+      { id: 'doctor', label: 'Doctors', icon: <Stethoscope className="w-8 h-8" /> },
+      { id: 'other', label: 'Others', icon: <Users className="w-8 h-8" /> }
     ];
     
     return (

@@ -1,5 +1,5 @@
 import { commonQuestions } from './commonQuestions';
 
-export const governmentEmployeeQuestions = [
+export const softwareEngineerQuestions = [
   ...commonQuestions
-];
+]; 
