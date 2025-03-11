@@ -12,7 +12,7 @@ export const commonQuestions = [
       "50–59",
       "60 or older",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question1.mp4",
     allowVideoUpload: true
   },
   {
@@ -29,7 +29,7 @@ export const commonQuestions = [
       "Personal wiki (Confluence, internal wiki, etc.)",
       "Other",
     ],
-    videoSrc: "/typeform-survey/videos/video2.mp4",
+    videoSrc: "/typeform-survey/videos/question2.mp4",
     allowVideoUpload: true
   },
   {
@@ -44,7 +44,7 @@ export const commonQuestions = [
       "Weekly once or twice",
       "Monthly once or twice",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question3.mp4",
     allowVideoUpload: true
   },
   {
@@ -58,7 +58,7 @@ export const commonQuestions = [
       "Rarely",
       "Never",
     ],
-    videoSrc: "/typeform-survey/videos/video2.mp4",
+    videoSrc: "/typeform-survey/videos/question4.mp4",
     allowVideoUpload: true
   },
   {
@@ -71,7 +71,7 @@ export const commonQuestions = [
       "Occasionally, but I usually find it",
       "No, I always remember my keywords",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question5.mp4",
     allowVideoUpload: true
   },
   {
@@ -85,7 +85,7 @@ export const commonQuestions = [
       "Checking bookmarks",
       "I usually remember exactly where I put it",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question6.mp4",
     allowVideoUpload: true
   },
   {
@@ -100,7 +100,7 @@ export const commonQuestions = [
       "The tool’s search feature is too slow or unreliable.",
       "I end up just searching online or redoing the work.",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question7.mp4",
     allowVideoUpload: true
   },
   {
@@ -114,7 +114,7 @@ export const commonQuestions = [
       "5–15 minutes",
       "More than 15 minute",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question8.mp4",
     allowVideoUpload: true
   },
   {
@@ -128,7 +128,7 @@ export const commonQuestions = [
       "Rarely",
       "Never",      
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question9.mp4",
     allowVideoUpload: true
   },
   {
@@ -142,7 +142,7 @@ export const commonQuestions = [
       "I do both: copy the info and store links with descriptions.",
       "I don’t do either one.",      
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question10.mp4",
     allowVideoUpload: true
   },
   {
@@ -154,7 +154,7 @@ export const commonQuestions = [
       "Yes, I’d love to try it.",
       "No, I’m happy with my current methods.",      
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/question11.mp4",
     allowVideoUpload: true
   }
 ]; 

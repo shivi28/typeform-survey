@@ -813,3 +813,22 @@
     width: 2rem;
     height: 2rem;
   }
+  
+  /* Video card styles */
+  .video-card {
+    max-width: 800px;
+    width: 90%;
+  }
+  
+  .video-container {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .intro-video {
+    width: 100%;
+    display: block;
+  }
