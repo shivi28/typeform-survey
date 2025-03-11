@@ -82,6 +82,7 @@ const SurveyDashboard = () => {
       softwareEngineer: 'Software Engineers',
       manager: 'Managers',
       doctor: 'Doctors',
+      caHr: 'CA/Human Resource',
       other: 'Others'
     };
     return labels[profession] || profession;

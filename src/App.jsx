@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause, RefreshCw, BarChart2 } from 'lucide-react';
+import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause, RefreshCw, BarChart2, FileText } from 'lucide-react';
 import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
@@ -25,6 +25,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayButton, setShowPlayButton] = useState(true);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showIntroVideo, setShowIntroVideo] = useState(false);
   
   const videoRef = useRef(null);
   
@@ -32,11 +33,13 @@ function App() {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   
   // Configure axios with the API URL from environment variables
-  const API_URL = import.meta.env.VITE_API_URL;
-  console.log('Using API URL:', API_URL);
-
-  // Set axios defaults
-  axios.defaults.baseURL = API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
+  
+  // Log the API URL for debugging
+  console.log('API URL from environment:', API_URL);
+  
+  // We'll use direct URLs instead of setting axios defaults
+  // to avoid any potential conflicts
   
   // Update the video auto-play effect
   useEffect(() => {
@@ -95,73 +98,61 @@ function App() {
     }
   };
   
-  // Configure axios to include the auth token in all requests
-  useEffect(() => {
-    if (user) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [user]);
-
   // Active questions based on selected profession
   const [questions, setQuestions] = useState(questionSets.other);
 
-  // Check user status on component mount
+  // Check for existing token on component mount
   useEffect(() => {
-    // Check if dashboard URL parameter is present
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('dashboard') === 'true') {
-      setShowDashboard(true);
-    }
-
     const token = localStorage.getItem('surveyToken');
     if (token) {
       try {
-        // Decode the token
+        console.log('Found token in localStorage, decoding...');
+        
+        // Decode the JWT to get user info
         const decodedToken = jwtDecode(token);
+        console.log('Decoded token:', decodedToken);
         
         // Check if token is expired
         const currentTime = Date.now() / 1000;
-        if (decodedToken.exp < currentTime) {
-          console.log('Token expired');
-          localStorage.removeItem('surveyToken');
+        if (decodedToken.exp && decodedToken.exp < currentTime) {
+          console.log('Token expired, logging out');
+          handleLogout();
           return;
         }
-
-              // THIS IS THE AUTO-LOGOUT CODE BLOCK ↓
-        // Check if user has already submitted - if yes, auto-logout on refresh
-        if (decodedToken.hasSubmitted && !showThankYou) {
-          console.log('User has already submitted, logging out on refresh');
-          setTimeout(() => handleLogout(), 3000); // Delay to show the "already submitted" message
-          // Show message before logging out
-          setUser({
-            token,
-            email: decodedToken.email || '',
-            name: decodedToken.name || '',
-            picture: decodedToken.picture || ''
-          });
-          setHasSubmitted(true);
-          return;
-        }
-        // AUTO-LOGOUT CODE ENDS HERE ↑
-
         
-        // Set user data from token
+        // Set user state with info from token
         setUser({
-          token,
           email: decodedToken.email,
           name: decodedToken.name,
           picture: decodedToken.picture
         });
         
-        // Check if user has already submitted
-        setHasSubmitted(decodedToken.hasSubmitted);
+        // Set hasSubmitted from token
+        if (decodedToken.hasSubmitted) {
+          setHasSubmitted(true);
+        }
         
-        // Verify token with the server
-        verifyUserStatus(token);
+        // If user has a profession in the token, set it
+        if (decodedToken.profession) {
+          setProfession(decodedToken.profession);
+        }
+        
+        // Determine what to show next
+        if (decodedToken.hasSubmitted) {
+          // If user has submitted, show the already submitted screen
+          setShowIntroVideo(false);
+          setShowProfessionSelect(false);
+        } else if (decodedToken.profession) {
+          // If user has a profession but hasn't submitted, show the survey
+          setShowIntroVideo(false);
+          setShowProfessionSelect(false);
+        } else {
+          // If user hasn't submitted and doesn't have a profession, show intro video
+          setShowIntroVideo(true);
+          setShowProfessionSelect(false);
+        }
       } catch (error) {
-        console.error('Invalid token:', error);
+        console.error('Error processing stored token:', error);
         localStorage.removeItem('surveyToken');
       }
     }
@@ -187,24 +178,59 @@ function App() {
   const verifyUserStatus = async (token) => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/user/status', {
-        headers: { Authorization: `Bearer ${token}` }
+      console.log('Verifying user status with token:', token);
+      
+      // Get the API URL directly
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
+      console.log('Using direct API URL for status check:', apiUrl);
+      
+      // Make API call to verify user status
+      console.log(`Making fetch request to ${apiUrl}/api/user/status`);
+      const response = await fetch(`${apiUrl}/api/user/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
       });
       
-      setHasSubmitted(response.data.hasSubmitted);
-      setIsLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response error:', response.status, errorText);
+        throw new Error(`Server responded with status: ${response.status}. ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('User status response:', data);
+      
+      // Update hasSubmitted state based on response
+      setHasSubmitted(data.hasSubmitted);
       
       // If user hasn't submitted and we have their profession saved, set it
-      if (!response.data.hasSubmitted && response.data.profession) {
-        setProfession(response.data.profession);
-      } else if (!response.data.hasSubmitted) {
-        // Show profession select screen if they haven't chosen one yet
-        setShowProfessionSelect(true);
+      if (!data.hasSubmitted && data.profession) {
+        console.log('Setting profession from saved data:', data.profession);
+        setProfession(data.profession);
+        // Skip intro video if they already have a profession set
+        setShowIntroVideo(false);
+        setShowProfessionSelect(false);
+      } else if (!data.hasSubmitted) {
+        // If user hasn't submitted and doesn't have a profession, show intro video
+        console.log('User has not submitted and has no profession, showing intro video');
+        setShowIntroVideo(true);
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error verifying user status:', error);
-      setUser(null);
-      localStorage.removeItem('surveyToken');
+      
+      // If there's an authentication error, clear user state
+      if (error.message.includes('401') || error.message.includes('403')) {
+        console.log('Authentication error, logging out');
+        setUser(null);
+        localStorage.removeItem('surveyToken');
+      }
+      
       setIsLoading(false);
     }
   };
@@ -212,7 +238,7 @@ function App() {
   const fetchSubmissions = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/submissions');
+      const response = await axios.get('/typeform-survey/api/submissions');
       console.log('Submissions received:', response.data);
       setSubmissions(response.data);
       setIsLoading(false);
@@ -226,76 +252,66 @@ function App() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setIsLoading(true);
-      setError(null); // Clear any previous errors
+      setError(null);
       
-      // Implement retry logic with exponential backoff
-      const maxRetries = 3;
-      let retryCount = 0;
-      let delay = 1000; // Start with 1 second delay
+      console.log('Google login successful, credential:', credentialResponse.credential);
       
-      const attemptLogin = async () => {
-        try {
-          // Send the token to your backend for verification
-          const response = await axios.post('/api/auth/google', {
-            token: credentialResponse.credential
-          });
-          
-          // Store the session token
-          localStorage.setItem('surveyToken', response.data.token);
-          
-          // Update user state
-          setUser({
-            token: response.data.token,
-            ...response.data.user
-          });
-          
-          // Check if the user has already submitted
-          setHasSubmitted(response.data.hasSubmitted);
-          
-          // If they haven't submitted and we have their profession, set it
-          if (!response.data.hasSubmitted && response.data.profession) {
-            setProfession(response.data.profession);
-          } else if (!response.data.hasSubmitted) {
-            // Show profession select screen
-            setShowProfessionSelect(true);
-          }
-          
-          return true; // Success
-        } catch (error) {
-          // If we hit a rate limit (429) and haven't exhausted retries
-          if (error.response?.status === 429 && retryCount < maxRetries) {
-            console.log(`Rate limited, retrying in ${delay/1000} seconds... (Attempt ${retryCount + 1}/${maxRetries})`);
-            
-            // Wait for the delay period
-            await new Promise(resolve => setTimeout(resolve, delay));
-            
-            // Increase retry count and delay for exponential backoff
-            retryCount++;
-            delay *= 2; // Double the delay each time
-            
-            // Try again
-            return attemptLogin();
-          }
-          
-          // If it's another error or we've exhausted retries, throw the error
-          throw error;
-        }
-      };
+      // Get the API URL directly
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
+      console.log('Using direct API URL for Google auth:', apiUrl);
       
-      // Start the login attempt process
-      await attemptLogin();
+      // First, send the Google token to our backend to verify and create a session
+      console.log(`Making fetch request to ${apiUrl}/api/auth/google`);
+      const response = await fetch(`${apiUrl}/api/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response error:', response.status, errorText);
+        throw new Error(`Server responded with status: ${response.status}. ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Backend auth response:', data);
+      
+      // Store the token from our backend
+      const backendToken = data.token;
+      localStorage.setItem('surveyToken', backendToken);
+      
+      // Decode the token to get user info
+      const decodedToken = jwtDecode(backendToken);
+      
+      // Set user state with info from backend token
+      setUser({
+        email: decodedToken.email,
+        name: decodedToken.name,
+        picture: decodedToken.picture,
+        token: backendToken
+      });
+      
+      // Check if user has already submitted a survey
+      setHasSubmitted(data.hasSubmitted);
+      
+      // If user hasn't submitted and we have their profession saved, set it
+      if (!data.hasSubmitted && data.profession) {
+        setProfession(data.profession);
+        setShowProfessionSelect(false);
+      } else if (!data.hasSubmitted) {
+        // Show intro video if user hasn't submitted yet
+        setShowIntroVideo(true);
+      }
+      
       setIsLoading(false);
     } catch (error) {
       console.error('Google login error:', error);
-      let errorMessage = 'Failed to authenticate with Google. ';
-      
-      if (error.response?.status === 429) {
-        errorMessage += 'You\'ve reached the rate limit. Please wait a few minutes before trying again.';
-      } else {
-        errorMessage += (error.response?.data?.message || error.message);
-      }
-      
-      setError(errorMessage);
+      setError('Failed to process Google login. Error: ' + error.message);
       setIsLoading(false);
     }
   };
@@ -308,9 +324,9 @@ function App() {
     saveProfession(selectedProfession);
   };
   
-  const saveProfession = async (selectedProfession) => {
+ const saveProfession = async (selectedProfession) => {
     try {
-      await axios.post('/api/user/profession', {
+      await axios.post(`${API_URL}/api/user/profession`, {
         profession: selectedProfession
       });
     } catch (error) {
@@ -423,24 +439,61 @@ function App() {
           : selectedAnswer
       };
       
+      console.log('Submitting survey answers:', allAnswers);
+      
+      // Get the API URL directly
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
+      console.log('Using direct API URL for survey submission:', apiUrl);
+      
+      // Get the token from localStorage
+      const token = localStorage.getItem('surveyToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Prepare the form data
       formData.append('answers', JSON.stringify(allAnswers));
       formData.append('profession', profession);
-  
-      Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
-        formData.append(`video-${questionId}`, videoData.file);
-      });
-  
+      
+      // Add any video uploads
+      if (Object.keys(uploadedVideos).length > 0) {
+        console.log('Adding video uploads to form data');
+        Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
+          formData.append(`video-${questionId}`, videoData.file);
+        });
+      }
+      
+      console.log(`Making fetch request to ${apiUrl}/api/submit-survey`);
+      console.log('Profession:', profession);
+      
+      // const response = await fetch(`${apiUrl}/api/submit-survey`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`
+      //     // Don't set Content-Type for FormData
+      //   },
+      //   body: formData,
+      //   credentials: 'include'
+      // });
+
       console.log('Submitting survey to:', `${API_URL}/api/submit-survey`);
-      console.log('Submitting answers:', allAnswers); // Add this line for debugging
       const response = await axios.post(
-        '/api/submit-survey', 
+        '/typeform-survey/api/submit-survey', 
         formData, 
         {
           headers: { 'Content-Type': 'multipart/form-data' }
         }
       );
-  
-      console.log('Submission response:', response.data);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response error:', response.status, errorText);
+        throw new Error(`Server responded with status: ${response.status}. ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Submission response:', data);
+      
       setIsSubmitted(true);
       setShowThankYou(true);
       setHasSubmitted(true);
@@ -452,7 +505,7 @@ function App() {
       }
     } catch (error) {
       console.error('Submission error:', error);
-      setError('Failed to submit survey. ' + (error.response?.data?.message || error.message));
+      setError('Failed to submit survey. Error: ' + error.message);
       setIsLoading(false);
     }
   };
@@ -530,6 +583,7 @@ function App() {
       { id: 'softwareEngineer', label: 'Software Engineers', icon: <Briefcase className="w-8 h-8" /> },
       { id: 'manager', label: 'Managers', icon: <Users className="w-8 h-8" /> },
       { id: 'doctor', label: 'Doctors', icon: <Stethoscope className="w-8 h-8" /> },
+      { id: 'caHr', label: 'CA/Human Resource', icon: <FileText className="w-8 h-8" /> },
       { id: 'other', label: 'Others', icon: <Users className="w-8 h-8" /> }
     ];
     
@@ -645,6 +699,50 @@ function App() {
         </div>
       </div>
     );
+  };
+
+  const renderIntroVideo = () => {
+    return (
+      <div className="auth-page-container">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+        </div>
+        
+        <div className="auth-card video-card">
+          <h2 className="auth-title">Welcome to Our Survey</h2>
+          <p className="auth-description">
+            Please watch this introduction before proceeding.
+          </p>
+          
+          <div className="video-container">
+            <video
+              className="intro-video"
+              controls
+              autoPlay
+              src="/typeform-survey/videos/intro.mp4" // Update this path to your actual video file
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          
+          <button 
+            onClick={handleContinueFromVideo} 
+            className="action-button mt-6"
+          >
+            Continue to Survey
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const handleContinueFromVideo = () => {
+    console.log('Continue from video clicked');
+    setShowIntroVideo(false);
+    setShowProfessionSelect(true);
   };
 
   const renderSurvey = () => {
@@ -842,24 +940,6 @@ function App() {
     );
   }
 
-  // // Render dashboard if showDashboard is true
-  // if (showDashboard) {
-  //   return (
-  //     <div>
-  //       <div className="bg-white p-3 shadow-sm flex justify-between items-center mb-4">
-  //         <h1 className="text-xl font-bold">Survey Analytics Dashboard</h1>
-  //         <button 
-  //           onClick={toggleDashboard}
-  //           className="flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
-  //         >
-  //           Return to Survey
-  //         </button>
-  //       </div>
-  //       <SurveyDashboard />
-  //     </div>
-  //   );
-  // }
-
   // Render dashboard if showDashboard is true
   if (showDashboard) {
     return (
@@ -887,32 +967,67 @@ function App() {
   }
   // Determine what to render based on the current state
   const renderContent = () => {
-    // Step 1: If not logged in, show Google login
+    console.log('Rendering content with state:', {
+      user: !!user,
+      isLoading,
+      error: !!error,
+      showDashboard,
+      hasSubmitted,
+      isSubmitted,
+      showIntroVideo,
+      showProfessionSelect,
+      profession
+    });
+    
+    if (isLoading) {
+      return (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="error-container">
+          <div className="error-message">
+            <p>{error}</p>
+            <p className="error-suggestion">Please try again or contact support if the problem persists.</p>
+            <button onClick={() => setError(null)} className="retry-button">
+              <RefreshCw size={16} className="mr-2" />
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
     if (!user) {
       return renderGoogleLogin();
     }
     
-    // Step 2: If logged in but need to select profession
+    if (showDashboard) {
+      return <SurveyDashboard />;
+    }
+    
+    if (hasSubmitted) {
+      return renderAlreadySubmitted();
+    }
+    
+    if (isSubmitted) {
+      return renderThankYouScreen();
+    }
+    
+    // Show intro video after login if needed
+    if (showIntroVideo) {
+      return renderIntroVideo();
+    }
+    
     if (showProfessionSelect) {
       return renderProfessionSelect();
     }
     
-    // Step 3: If logged in but already submitted, show already submitted screen
-    if (hasSubmitted && !showThankYou) {
-      return renderAlreadySubmitted();
-    }
-    
-    // Step 4: If just submitted, show thank you screen
-    if (showThankYou) {
-      return renderThankYouScreen();
-    }
-    
-    // Step 5: If viewing submissions
-    if (isSubmitted) {
-      return renderSubmissions();
-    }
-    
-    // Step 6: Otherwise, show the survey
     return renderSurvey();
   };
 
