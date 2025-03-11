@@ -1,5 +1,5 @@
 import { commonQuestions } from './commonQuestions';
 
-export const itProfessionalQuestions =[
+export const managerQuestions = [
   ...commonQuestions
 ]; 

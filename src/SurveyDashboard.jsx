@@ -79,10 +79,10 @@ const SurveyDashboard = () => {
   function getProfessionLabel(profession) {
     const labels = {
       student: 'Student',
-      itProfessional: 'IT Professional',
-      doctor: 'Doctor',
-      governmentEmployee: 'Government Employee',
-      other: 'Other'
+      softwareEngineer: 'Software Engineers',
+      manager: 'Managers',
+      doctor: 'Doctors',
+      other: 'Others'
     };
     return labels[profession] || profession;
   }

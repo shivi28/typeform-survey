@@ -29,7 +29,7 @@ export const commonQuestions = [
       "Personal wiki (Confluence, internal wiki, etc.)",
       "Other",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/video2.mp4",
     allowVideoUpload: true
   },
   {
@@ -58,7 +58,7 @@ export const commonQuestions = [
       "Rarely",
       "Never",
     ],
-    videoSrc: "/typeform-survey/videos/video1.mp4",
+    videoSrc: "/typeform-survey/videos/video2.mp4",
     allowVideoUpload: true
   },
   {
