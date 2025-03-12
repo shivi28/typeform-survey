@@ -35,9 +35,6 @@ function App() {
   // Configure axios with the API URL from environment variables
   const API_URL = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
   
-  // Log the API URL for debugging
-  console.log('API URL from environment:', API_URL);
-  
   // We'll use direct URLs instead of setting axios defaults
   // to avoid any potential conflicts
   
@@ -101,62 +98,59 @@ function App() {
   // Active questions based on selected profession
   const [questions, setQuestions] = useState(questionSets.other);
 
-  // Check for existing token on component mount
-  useEffect(() => {
-    const token = localStorage.getItem('surveyToken');
-    if (token) {
-      try {
-        console.log('Found token in localStorage, decoding...');
+  // // Check for existing token on component mount
+  // useEffect(() => {
+  //   const token = localStorage.getItem('surveyToken');
+  //   if (token) {
+  //     try {
         
-        // Decode the JWT to get user info
-        const decodedToken = jwtDecode(token);
-        console.log('Decoded token:', decodedToken);
+  //       // Decode the JWT to get user info
+  //       const decodedToken = jwtDecode(token);
         
-        // Check if token is expired
-        const currentTime = Date.now() / 1000;
-        if (decodedToken.exp && decodedToken.exp < currentTime) {
-          console.log('Token expired, logging out');
-          handleLogout();
-          return;
-        }
+  //       // Check if token is expired
+  //       const currentTime = Date.now() / 1000;
+  //       if (decodedToken.exp && decodedToken.exp < currentTime) {
+  //         handleLogout();
+  //         return;
+  //       }
         
-        // Set user state with info from token
-        setUser({
-          email: decodedToken.email,
-          name: decodedToken.name,
-          picture: decodedToken.picture
-        });
+  //       // Set user state with info from token
+  //       setUser({
+  //         email: decodedToken.email,
+  //         name: decodedToken.name,
+  //         picture: decodedToken.picture
+  //       });
         
-        // Set hasSubmitted from token
-        if (decodedToken.hasSubmitted) {
-          setHasSubmitted(true);
-        }
+  //       // Set hasSubmitted from token
+  //       if (decodedToken.hasSubmitted) {
+  //         setHasSubmitted(true);
+  //       }
         
-        // If user has a profession in the token, set it
-        if (decodedToken.profession) {
-          setProfession(decodedToken.profession);
-        }
+  //       // If user has a profession in the token, set it
+  //       if (decodedToken.profession) {
+  //         setProfession(decodedToken.profession);
+  //       }
         
-        // Determine what to show next
-        if (decodedToken.hasSubmitted) {
-          // If user has submitted, show the already submitted screen
-          setShowIntroVideo(false);
-          setShowProfessionSelect(false);
-        } else if (decodedToken.profession) {
-          // If user has a profession but hasn't submitted, show the survey
-          setShowIntroVideo(false);
-          setShowProfessionSelect(false);
-        } else {
-          // If user hasn't submitted and doesn't have a profession, show intro video
-          setShowIntroVideo(true);
-          setShowProfessionSelect(false);
-        }
-      } catch (error) {
-        console.error('Error processing stored token:', error);
-        localStorage.removeItem('surveyToken');
-      }
-    }
-  }, []);
+  //       // Determine what to show next
+  //       if (decodedToken.hasSubmitted) {
+  //         // If user has submitted, show the already submitted screen
+  //         setShowIntroVideo(false);
+  //         setShowProfessionSelect(false);
+  //       } else if (decodedToken.profession) {
+  //         // If user has a profession but hasn't submitted, show the survey
+  //         setShowIntroVideo(false);
+  //         setShowProfessionSelect(false);
+  //       } else {
+  //         // If user hasn't submitted and doesn't have a profession, show intro video
+  //         setShowIntroVideo(true);
+  //         setShowProfessionSelect(false);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error processing stored token:', error);
+  //       localStorage.removeItem('surveyToken');
+  //     }
+  //   }
+  // }, []);
   
   // Fetch submissions from backend on component mount
   useEffect(() => {
@@ -178,14 +172,11 @@ function App() {
   const verifyUserStatus = async (token) => {
     try {
       setIsLoading(true);
-      console.log('Verifying user status with token:', token);
       
       // Get the API URL directly
       const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
-      console.log('Using direct API URL for status check:', apiUrl);
       
       // Make API call to verify user status
-      console.log(`Making fetch request to ${apiUrl}/api/user/status`);
       const response = await fetch(`${apiUrl}/api/user/status`, {
         method: 'GET',
         headers: {
@@ -202,31 +193,27 @@ function App() {
       }
       
       const data = await response.json();
-      console.log('User status response:', data);
+ 
       
       // Update hasSubmitted state based on response
       setHasSubmitted(data.hasSubmitted);
       
       // If user hasn't submitted and we have their profession saved, set it
       if (!data.hasSubmitted && data.profession) {
-        console.log('Setting profession from saved data:', data.profession);
         setProfession(data.profession);
         // Skip intro video if they already have a profession set
         setShowIntroVideo(false);
         setShowProfessionSelect(false);
       } else if (!data.hasSubmitted) {
         // If user hasn't submitted and doesn't have a profession, show intro video
-        console.log('User has not submitted and has no profession, showing intro video');
         setShowIntroVideo(true);
       }
       
       setIsLoading(false);
     } catch (error) {
-      console.error('Error verifying user status:', error);
       
       // If there's an authentication error, clear user state
       if (error.message.includes('401') || error.message.includes('403')) {
-        console.log('Authentication error, logging out');
         setUser(null);
         localStorage.removeItem('surveyToken');
       }
@@ -239,7 +226,6 @@ function App() {
     try {
       setIsLoading(true);
       const response = await axios.get(`${API_URL}/api/submissions`);
-      console.log('Submissions received:', response.data);
       setSubmissions(response.data);
       setIsLoading(false);
     } catch (error) {
@@ -254,14 +240,10 @@ function App() {
       setIsLoading(true);
       setError(null);
       
-      console.log('Google login successful, credential:', credentialResponse.credential);
-      
       // Get the API URL directly
       const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
-      console.log('Using direct API URL for Google auth:', apiUrl);
       
       // First, send the Google token to our backend to verify and create a session
-      console.log(`Making fetch request to ${apiUrl}/api/auth/google`);
       const response = await fetch(`${apiUrl}/api/auth/google`, {
         method: 'POST',
         headers: {
@@ -279,7 +261,6 @@ function App() {
       }
       
       const data = await response.json();
-      console.log('Backend auth response:', data);
       
       // Store the token from our backend
       const backendToken = data.token;
@@ -330,22 +311,7 @@ function App() {
       throw new Error('No authentication token found');
     }
 
-    console.log('Saving profession:', selectedProfession);
-    // const formData = new FormData();
-    // formData.append('profession', selectedProfession);
-
     try {
-      // const response = await axios.post(
-      //   `${API_URL}/api/submit-survey`, 
-      //   formData, 
-      //   {
-      //     headers: { 
-      //       'Content-Type': 'multipart/form-data',
-      //       'Authorization': `Bearer ${token}`
-      //      }
-      //   }
-      // );
-      // const response = await axios.post(
       await axios.post(
         `${API_URL}/api/user/profession`, 
         { profession: selectedProfession },
@@ -366,14 +332,14 @@ function App() {
     setError('Google sign-in was unsuccessful. Please try again in a few minutes.');
   };
   
-  const handleLogout = () => {
-    localStorage.removeItem('surveyToken');
-    setUser(null);
-    setHasSubmitted(false);
-    setProfession('');
-    setShowProfessionSelect(false);
-    resetSurvey();
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem('surveyToken');
+  //   setUser(null);
+  //   setHasSubmitted(false);
+  //   setProfession('');
+  //   setShowProfessionSelect(false);
+  //   resetSurvey();
+  // };
 
   const resetSurvey = () => {
     setCurrentIndex(0);
@@ -451,88 +417,172 @@ function App() {
       handleSubmit(answers);
     }
   };
+// Add these changes to the handleSubmit function in App.js
 
-  const handleSubmit = async (finalAnswers) => {
-    try {
-      setIsLoading(true);
-      const formData = new FormData();
-      
-      // Include the current question's answer in the final submission
-      const allAnswers = {
-        ...finalAnswers,
-        [currentQuestion.id]: currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple
-          ? selectedAnswers
-          : selectedAnswer
-      };
-      
-      console.log('Submitting survey answers:', allAnswers);
-      
-      // Get the API URL directly
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
-      console.log('Using direct API URL for survey submission:', apiUrl);
-      
-      // Get the token from localStorage
-      const token = localStorage.getItem('surveyToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      
-      console.log('token', allAnswers);
-      // Prepare the form data
-      formData.append('answers', JSON.stringify(allAnswers));
-      formData.append('profession', profession);
-      
-      // Add any video uploads
-      if (Object.keys(uploadedVideos).length > 0) {
-        console.log('Adding video uploads to form data');
-        Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
-          formData.append(`video-${questionId}`, videoData.file);
-        });
-      }
-      
-      console.log(`Making fetch request to ${apiUrl}/api/submit-survey`);
-      console.log('Profession:', profession);
-      
-      // const response = await fetch(`${apiUrl}/api/submit-survey`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${token}`
-      //     // Don't set Content-Type for FormData
-      //   },
-      //   body: formData,
-      //   credentials: 'include'
-      // });
-
-      console.log('Submitting survey to:', `${API_URL}/api/submit-survey`);
-      const response = await axios.post(
-        `${API_URL}/api/submit-survey`, 
-        formData, 
-        {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-           }
+const handleSubmit = async (finalAnswers) => {
+  try {
+    setIsLoading(true);
+    const formData = new FormData();
+    
+    // Include the current question's answer in the final submission
+    const allAnswers = {
+      ...finalAnswers,
+      [currentQuestion.id]: currentQuestion.type === "multipleChoice" && currentQuestion.allowMultiple
+        ? selectedAnswers
+        : selectedAnswer
+    };
+    
+    // Get the API URL directly
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
+    
+    // Get the token from localStorage
+    const token = localStorage.getItem('surveyToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    // Prepare the form data
+    formData.append('answers', JSON.stringify(allAnswers));
+    formData.append('profession', profession);
+    
+    // Add any video uploads
+    if (Object.keys(uploadedVideos).length > 0) {
+      Object.entries(uploadedVideos).forEach(([questionId, videoData]) => {
+        formData.append(`video-${questionId}`, videoData.file);
+      });
+    }
+    
+    const response = await axios.post(
+      `${apiUrl}/api/submit-survey`, 
+      formData, 
+      {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
         }
-      );
+      }
+    );
+    
+    const data = response.data;
+    console.log('Submission response:', data);
+    
+    // Update all relevant state variables
+    setIsSubmitted(true);
+    setShowThankYou(true);
+    setHasSubmitted(true);
+    
+    // Important: Update localStorage with the submission status
+    try {
+      // Get current token data
+      const currentToken = localStorage.getItem('surveyToken');
+      if (currentToken) {
+        const decodedToken = jwtDecode(currentToken);
+        
+        // Create updated token data with hasSubmitted=true
+        const updatedTokenData = {
+          ...decodedToken,
+          hasSubmitted: true
+        };
+        
+        // Store updated information in localStorage
+        localStorage.setItem('submissionStatus', JSON.stringify({
+          hasSubmitted: true,
+          timestamp: new Date().toISOString()
+        }));
+      }
+    } catch (tokenError) {
+      console.error('Error updating token data:', tokenError);
+      // Continue anyway as the main submission was successful
+    }
+    
+    setIsLoading(false);
+  } catch (error) {
+    console.error('Submission error:', error);
+    setError('Failed to submit survey. Error: ' + error.message);
+    setIsLoading(false);
+  }
+};
+
+// Then update the token-checking useEffect
+useEffect(() => {
+  const token = localStorage.getItem('surveyToken');
+  const submissionStatus = localStorage.getItem('submissionStatus');
+  
+  if (token) {
+    try {
+      // Decode the JWT to get user info
+      const decodedToken = jwtDecode(token);
       
-      const data = response.data;
-      console.log('Submission response:', data);
+      // Check if token is expired
+      const currentTime = Date.now() / 1000;
+      if (decodedToken.exp && decodedToken.exp < currentTime) {
+        handleLogout();
+        return;
+      }
       
-      setIsSubmitted(true);
-      setShowThankYou(true);
-      setHasSubmitted(true);
-      setIsLoading(false);
+      // Set user state with info from token
+      setUser({
+        email: decodedToken.email,
+        name: decodedToken.name,
+        picture: decodedToken.picture
+      });
       
-      // Update the stored token to reflect the submission
-      if (user && user.token) {
-        verifyUserStatus(user.token);
+      // First check localStorage for submission status
+      let userHasSubmitted = false;
+      if (submissionStatus) {
+        try {
+          const parsedStatus = JSON.parse(submissionStatus);
+          userHasSubmitted = parsedStatus.hasSubmitted === true;
+        } catch (e) {
+          console.error('Error parsing submission status:', e);
+        }
+      }
+      
+      // If not found in localStorage, check the token data
+      if (!userHasSubmitted) {
+        userHasSubmitted = decodedToken.hasSubmitted === true;
+      }
+      
+      // Set submission status
+      setHasSubmitted(userHasSubmitted);
+      
+      // If user has a profession in the token, set it
+      if (decodedToken.profession) {
+        setProfession(decodedToken.profession);
+      }
+      
+      // Determine what to show next based on submission status
+      if (userHasSubmitted) {
+        // If user has submitted, show the already submitted screen
+        setShowIntroVideo(false);
+        setShowProfessionSelect(false);
+      } else if (decodedToken.profession) {
+        // If user has a profession but hasn't submitted, show the survey
+        setShowIntroVideo(false);
+        setShowProfessionSelect(false);
+      } else {
+        // If user hasn't submitted and doesn't have a profession, show intro video
+        setShowIntroVideo(true);
+        setShowProfessionSelect(false);
       }
     } catch (error) {
-      console.error('Submission error:', error);
-      setError('Failed to submit survey. Error: ' + error.message);
-      setIsLoading(false);
+      console.error('Error processing stored token:', error);
+      localStorage.removeItem('surveyToken');
+      localStorage.removeItem('submissionStatus');
     }
-  };
+  }
+}, []);
+
+// Also update the handleLogout function to clear all storage
+const handleLogout = () => {
+  localStorage.removeItem('surveyToken');
+  localStorage.removeItem('submissionStatus');
+  setUser(null);
+  setHasSubmitted(false);
+  setProfession('');
+  setShowProfessionSelect(false);
+  resetSurvey();
+};
 
   const renderGoogleLogin = () => {
     return (
@@ -547,7 +597,8 @@ function App() {
         <div className="auth-card">
           <h2 className="auth-title">Welcome to Our Survey</h2>
           <p className="auth-description">
-            Your feedback is valuable to us! Sign in with Google to share your thoughts and help us improve.
+            Your feedback is valuable! <br />
+            Sign in with Google to share your thoughts.
           </p>
           
           {error && (
@@ -584,7 +635,6 @@ function App() {
           
           <p className="privacy-text">
             We only use your email to prevent duplicate submissions.
-            We don't share your information with third parties.
           </p>
         </div>
       </div>
