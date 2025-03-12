@@ -9,7 +9,7 @@ const SurveyDashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedProfession, setSelectedProfession] = useState('student');
+  const [selectedProfession, setSelectedProfession] = useState('');
   const [activeTab, setActiveTab] = useState('charts');
 
   // Get API URL from environment variables or use default
@@ -34,17 +34,44 @@ const SurveyDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log('Fetching submissions from API:', `${API_URL}/api/submissions`);
         const response = await fetch(`${API_URL}/api/submissions`);
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
         }
         const responseData = await response.json();
+        console.log('Received submissions data:', responseData);
         setData(responseData);
+        
+        // Set default profession based on available data
+        if (responseData.length > 0) {
+          // Get all professions that have data
+          const availableProfessions = [...new Set(responseData.map(item => item.profession))];
+          console.log('Available professions:', availableProfessions);
+          
+          // Set the first available profession as default
+          if (availableProfessions.length > 0) {
+            setSelectedProfession(availableProfessions[0]);
+            console.log('Setting default profession to:', availableProfessions[0]);
+          } else {
+            // Fallback to 'other' if no professions found (shouldn't happen if data exists)
+            console.log('No professions found in data, defaulting to "other"');
+            setSelectedProfession('other');
+          }
+        } else {
+          // If no data, default to 'other'
+          console.log('No data received, defaulting to "other"');
+          setSelectedProfession('other');
+        }
+        
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError(`Failed to fetch survey data: ${err.message}`);
         setLoading(false);
-        console.error('Error fetching data:', err);
+        // Set a default profession even on error
+        console.log('Error occurred, defaulting to "other"');
+        setSelectedProfession('other');
       }
     };
 
@@ -57,10 +84,12 @@ const SurveyDashboard = () => {
     : Object.keys(questionSets);
 
   // Filter data by selected profession
-  const filteredData = data.filter(item => {
-    console.log('Filtering item:', item.profession, 'Selected:', selectedProfession);
-    return item.profession === selectedProfession;
-  });
+  const filteredData = selectedProfession 
+    ? data.filter(item => {
+        console.log('Filtering item:', item.profession, 'Selected:', selectedProfession);
+        return item.profession === selectedProfession;
+      })
+    : [];
 
   // Process data for profession distribution (pie chart)
   const professionDistributionData = React.useMemo(() => {
@@ -95,10 +124,12 @@ const SurveyDashboard = () => {
 
   // Get response data for a specific question in the format needed for the chart
   const getQuestionResponseData = (question) => {
-    console.log('Processing question:', question);
-    console.log('Filtered data:', filteredData);
+    console.log('Processing question:', question.id, question.questionText);
+    console.log('Selected profession:', selectedProfession);
+    console.log('Filtered data count:', filteredData.length);
 
     if (filteredData.length === 0) {
+      console.log('No filtered data available for profession:', selectedProfession);
       // Return the options with zero counts for empty data
       return question.options.map(option => ({
         name: option,
@@ -109,6 +140,7 @@ const SurveyDashboard = () => {
 
     // Get all possible options for this question
     const options = question.options || [];
+    console.log('Question options:', options);
     
     // Initialize with all options at 0 count
     const initialCounts = {};
@@ -119,28 +151,34 @@ const SurveyDashboard = () => {
     // Count responses for this question
     const responseCounts = filteredData.reduce((acc, submission) => {
       // Handle both string and number IDs
-      const answer = submission.answers[`common_${question.id}`] || submission.answers[question.id];
+      const answer = submission.answers[`common_${question.id}`] || 
+                     submission.answers[question.id] || 
+                     submission.answers[question.id.toString()];
+      
+      console.log('Submission ID:', submission._id);
       console.log('Question ID:', question.id);
-      console.log('Looking for answer with key:', `common_${question.id}`);
+      console.log('Looking for answer with keys:', `common_${question.id}`, question.id, question.id.toString());
       console.log('Submission answers:', submission.answers);
-      console.log('Current answer:', answer);
+      console.log('Found answer:', answer);
 
       if (answer) {
         // Handle both single answers and arrays (for multiple choice)
         if (Array.isArray(answer)) {
+          console.log('Processing array answer:', answer);
           answer.forEach(a => {
             if (acc.hasOwnProperty(a)) {
               acc[a] += 1;
             }
           });
         } else if (acc.hasOwnProperty(answer)) {
+          console.log('Processing single answer:', answer);
           acc[answer] += 1;
         }
       }
       return acc;
     }, {...initialCounts});
 
-    console.log('Response counts:', responseCounts);
+    console.log('Final response counts:', responseCounts);
 
     // Convert to array format for chart
     const chartData = options.map(option => ({
@@ -149,7 +187,7 @@ const SurveyDashboard = () => {
       color: getColorForOption(option)
     }));
 
-    console.log('Chart data:', chartData);
+    console.log('Final chart data:', chartData);
     return chartData;
   };
 
@@ -314,6 +352,16 @@ const SurveyDashboard = () => {
 
   // Render question cards for charts view - with side-by-side layout
   const renderQuestionCards = () => {
+    // If no profession is selected yet, show a loading message
+    if (!selectedProfession) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-3 text-lg text-blue-500">Loading profession data...</span>
+        </div>
+      );
+    }
+    
     const questions = getQuestionsForProfession(selectedProfession);
     
     if (questions.length === 0) {
@@ -351,9 +399,10 @@ const SurveyDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <span className="ml-3 text-lg text-blue-500">Loading survey data...</span>
+      <div className="flex flex-col justify-center items-center h-64 bg-white p-8 rounded-lg shadow-md">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+        <span className="text-lg text-blue-500">Loading survey data...</span>
+        <p className="text-sm text-gray-500 mt-2">We'll automatically select the profession with available data.</p>
       </div>
     );
   }
@@ -396,12 +445,17 @@ const SurveyDashboard = () => {
                 value={selectedProfession}
                 onChange={(e) => setSelectedProfession(e.target.value)}
                 className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                disabled={!selectedProfession} // Disable until a profession is selected
               >
-                {professions.map(profession => (
-                  <option key={profession} value={profession}>
-                    {getProfessionLabel(profession)}
-                  </option>
-                ))}
+                {selectedProfession === '' ? (
+                  <option value="">Loading professions...</option>
+                ) : (
+                  professions.map(profession => (
+                    <option key={profession} value={profession}>
+                      {getProfessionLabel(profession)}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             
