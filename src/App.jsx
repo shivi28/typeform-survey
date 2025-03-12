@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause, RefreshCw, BarChart2, FileText } from 'lucide-react';
+import { ChevronRight, CheckCircle, Play, LogOut, User, Briefcase, Stethoscope, Building2, Users, Pause, RefreshCw, BarChart2, FileText, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
@@ -238,7 +238,7 @@ function App() {
   const fetchSubmissions = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/typeform-survey/api/submissions');
+      const response = await axios.get(`${API_URL}/api/submissions`);
       console.log('Submissions received:', response.data);
       setSubmissions(response.data);
       setIsLoading(false);
@@ -325,10 +325,36 @@ function App() {
   };
   
  const saveProfession = async (selectedProfession) => {
+    const token = localStorage.getItem('surveyToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    console.log('Saving profession:', selectedProfession);
+    // const formData = new FormData();
+    // formData.append('profession', selectedProfession);
+
     try {
-      await axios.post(`${API_URL}/api/user/profession`, {
-        profession: selectedProfession
-      });
+      // const response = await axios.post(
+      //   `${API_URL}/api/submit-survey`, 
+      //   formData, 
+      //   {
+      //     headers: { 
+      //       'Content-Type': 'multipart/form-data',
+      //       'Authorization': `Bearer ${token}`
+      //      }
+      //   }
+      // );
+      // const response = await axios.post(
+      await axios.post(
+        `${API_URL}/api/user/profession`, 
+        { profession: selectedProfession },
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+           }
+        }  
+      );
     } catch (error) {
       console.error('Error saving profession:', error);
       // Continue anyway, as this is not critical
@@ -451,6 +477,7 @@ function App() {
         throw new Error('No authentication token found');
       }
       
+      console.log('token', allAnswers);
       // Prepare the form data
       formData.append('answers', JSON.stringify(allAnswers));
       formData.append('profession', profession);
@@ -478,20 +505,17 @@ function App() {
 
       console.log('Submitting survey to:', `${API_URL}/api/submit-survey`);
       const response = await axios.post(
-        '/typeform-survey/api/submit-survey', 
+        `${API_URL}/api/submit-survey`, 
         formData, 
         {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+           }
         }
       );
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server response error:', response.status, errorText);
-        throw new Error(`Server responded with status: ${response.status}. ${errorText}`);
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       console.log('Submission response:', data);
       
       setIsSubmitted(true);
@@ -562,16 +586,6 @@ function App() {
             We only use your email to prevent duplicate submissions.
             We don't share your information with third parties.
           </p>
-          
-          <div className="mt-6">
-            <button
-              onClick={toggleDashboard}
-              className="flex items-center mx-auto bg-orange-200 hover:bg-orange-300 text-gray-700 font-medium py-2 px-4 rounded transition-colors"
-            >
-              <BarChart2 size={18} className="mr-2" />
-              {showDashboard ? "Return to Survey" : "Results"}
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -657,19 +671,32 @@ function App() {
             Thank you for your valuable feedback!
           </p>
           
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            <span>Sign Out</span>
-          </button>
+          <div className="flex flex-col space-y-3">
+            <button
+              onClick={() => {
+                setShowDashboard(true);
+                window.history.pushState({}, '', '?dashboard=true');
+              }}
+              className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
+            >
+              <BarChart2 className="w-5 h-5 mr-2" />
+              <span>View Results</span>
+            </button>
+            
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center mx-auto bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1 mt-3"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       </div>
     );
   };
 
-  const renderThankYouScreen = () => {
+  const renderThankYou = () => {
     return (
       <div className="thank-you-container">
         <div className="thank-card">
@@ -682,20 +709,26 @@ function App() {
             We appreciate your time and valuable feedback.
           </p>
           
-          {/* <button
-            onClick={() => window.location.reload()}
-            className="restart-button"
-          >
-            <RefreshCw size={18} className="mr-2" />
-            Take Another Survey
-          </button> */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center mx-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition duration-300 transform hover:-translate-y-1"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            <span>Take Another Survey</span>
-          </button>
+          <div className="thank-actions">
+            <button
+              onClick={() => {
+                setShowDashboard(true);
+                window.history.pushState({}, '', '?dashboard=true');
+              }}
+              className="thank-button dashboard-button"
+            >
+              <BarChart2 size={16} className="mr-2" />
+              View Results
+            </button>
+            
+            <button
+              onClick={handleLogout}
+              className="thank-button"
+            >
+              <LogOut size={16} className="mr-2" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -974,6 +1007,7 @@ function App() {
       showDashboard,
       hasSubmitted,
       isSubmitted,
+      showThankYou,
       showIntroVideo,
       showProfessionSelect,
       profession
@@ -1011,12 +1045,17 @@ function App() {
       return <SurveyDashboard />;
     }
     
+    // Prioritize showing the thank you screen
+    if (showThankYou) {
+      return renderThankYou();
+    }
+    
     if (hasSubmitted) {
       return renderAlreadySubmitted();
     }
     
     if (isSubmitted) {
-      return renderThankYouScreen();
+      return renderThankYou();
     }
     
     // Show intro video after login if needed
