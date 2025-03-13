@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { questionSets } from './questions';
 
-const SurveyDashboard = () => {
+const SurveyDashboard = ({ submissions }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,11 +31,33 @@ const SurveyDashboard = () => {
   };
 
   useEffect(() => {
+    // If submissions are provided as a prop, use them directly
+    if (submissions && submissions.length > 0) {
+      console.log('Using submissions provided as props:', submissions.length);
+      setData(submissions);
+      setSelectedProfession('all');
+      setLoading(false);
+      return;
+    }
+    
+    // Otherwise fetch from API
     const fetchData = async () => {
       try {
         setLoading(true);
         console.log('Fetching submissions from API:', `${API_URL}/api/submissions`);
-        const response = await fetch(`${API_URL}/api/submissions`);
+        
+        // Get the token from localStorage
+        const token = localStorage.getItem('surveyToken');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        
+        const response = await fetch(`${API_URL}/api/submissions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
         }
@@ -43,23 +65,12 @@ const SurveyDashboard = () => {
         console.log('Received submissions data:', responseData);
         setData(responseData);
         
-        // Set default profession based on available data
+        // Set default profession to 'all' if there's data
         if (responseData.length > 0) {
-          // Get all professions that have data
-          const availableProfessions = [...new Set(responseData.map(item => item.profession))];
-          console.log('Available professions:', availableProfessions);
-          
-          // Set the first available profession as default
-          if (availableProfessions.length > 0) {
-            setSelectedProfession(availableProfessions[0]);
-            console.log('Setting default profession to:', availableProfessions[0]);
-          } else {
-            // Fallback to 'other' if no professions found (shouldn't happen if data exists)
-            console.log('No professions found in data, defaulting to "other"');
-            setSelectedProfession('other');
-          }
+          console.log('Setting default profession to "all"');
+          setSelectedProfession('all');
         } else {
-          // If no data, default to 'other'
+          // Fallback to 'other' if no data
           console.log('No data received, defaulting to "other"');
           setSelectedProfession('other');
         }
@@ -76,20 +87,25 @@ const SurveyDashboard = () => {
     };
 
     fetchData();
-  }, [API_URL]);
+  }, [API_URL, submissions]);
 
   // Get unique professions
   const professions = data.length > 0 
     ? [...new Set(data.map(item => item.profession))]
     : Object.keys(questionSets);
 
+  // Add "all" option to professions list
+  const professionsWithAll = ['all', ...professions];
+
   // Filter data by selected profession
-  const filteredData = selectedProfession 
-    ? data.filter(item => {
-        console.log('Filtering item:', item.profession, 'Selected:', selectedProfession);
-        return item.profession === selectedProfession;
-      })
-    : [];
+  const filteredData = selectedProfession === 'all'
+    ? data // Show all data when 'all' is selected
+    : selectedProfession 
+      ? data.filter(item => {
+          console.log('Filtering item:', item.profession, 'Selected:', selectedProfession);
+          return item.profession === selectedProfession;
+        })
+      : [];
 
   // Process data for profession distribution (pie chart)
   const professionDistributionData = React.useMemo(() => {
@@ -119,6 +135,25 @@ const SurveyDashboard = () => {
 
   // Get questions for the selected profession from questionSets
   const getQuestionsForProfession = (profession) => {
+    if (profession === 'all') {
+      // For 'all' option, combine questions from all professions
+      // First, get unique question IDs across all professions
+      const allQuestions = [];
+      const questionIds = new Set();
+      
+      Object.values(questionSets).forEach(questions => {
+        questions.forEach(question => {
+          // Only add questions that haven't been added yet (based on ID)
+          if (!questionIds.has(question.id)) {
+            questionIds.add(question.id);
+            allQuestions.push(question);
+          }
+        });
+      });
+      
+      return allQuestions;
+    }
+    
     return questionSets[profession] || [];
   };
 
@@ -328,23 +363,61 @@ const SurveyDashboard = () => {
 
   // Render stats summary
   const renderSummaryStats = () => {
+    // Calculate profession counts for the summary
+    const professionCounts = data.reduce((acc, item) => {
+      acc[item.profession] = (acc[item.profession] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Find the profession with the most responses
+    let topProfession = '';
+    let topCount = 0;
+    
+    Object.entries(professionCounts).forEach(([profession, count]) => {
+      if (count > topCount) {
+        topProfession = profession;
+        topCount = count;
+      }
+    });
+    
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-blue-100 p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-blue-800">Total Responses</h3>
           <p className="text-3xl font-bold text-blue-600">{data.length}</p>
+          {selectedProfession === 'all' && (
+            <p className="text-sm text-blue-700 mt-2">
+              Across all professions
+            </p>
+          )}
         </div>
+        
         <div className="bg-green-100 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-green-800">Unique Professions</h3>
+          <h3 className="text-lg font-semibold text-green-800">
+            {selectedProfession === 'all' ? 'Unique Professions' : 'Selected Profession'}
+          </h3>
           <p className="text-3xl font-bold text-green-600">
-            {professions.length}
+            {selectedProfession === 'all' 
+              ? professions.length 
+              : getProfessionLabel(selectedProfession)}
           </p>
+          {selectedProfession === 'all' && topProfession && (
+            <p className="text-sm text-green-700 mt-2">
+              Most common: {getProfessionLabel(topProfession)} ({topCount})
+            </p>
+          )}
         </div>
+        
         <div className="bg-purple-100 p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-purple-800">Latest Response</h3>
           <p className="text-xl font-bold text-purple-600">
             {data.length > 0 ? new Date(data[0].timestamp).toLocaleDateString() : 'N/A'}
           </p>
+          {selectedProfession === 'all' && data.length > 0 && (
+            <p className="text-sm text-purple-700 mt-2">
+              From: {getProfessionLabel(data[0].profession)}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -375,6 +448,11 @@ const SurveyDashboard = () => {
             {/* Question header */}
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-800">{question.questionText}</h3>
+              {selectedProfession === 'all' && (
+                <div className="mt-2 text-sm text-gray-500">
+                  <span className="font-medium">Note:</span> Showing aggregated data across all professions
+                </div>
+              )}
             </div>
             
             {/* Two-column layout */}
@@ -450,9 +528,9 @@ const SurveyDashboard = () => {
                 {selectedProfession === '' ? (
                   <option value="">Loading professions...</option>
                 ) : (
-                  professions.map(profession => (
+                  professionsWithAll.map(profession => (
                     <option key={profession} value={profession}>
-                      {getProfessionLabel(profession)}
+                      {profession === 'all' ? 'All Professions' : getProfessionLabel(profession)}
                     </option>
                   ))
                 )}
