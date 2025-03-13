@@ -1043,7 +1043,7 @@ const handleLogout = () => {
           </button>
         </div>
         <div className="container mx-auto px-4">
-          <SurveyDashboard />
+          <SurveyDashboard submissions={submissions} />
         </div>
       </div>
     );
@@ -1092,7 +1092,7 @@ const handleLogout = () => {
     }
     
     if (showDashboard) {
-      return <SurveyDashboard />;
+      return <SurveyDashboard submissions={submissions} />;
     }
     
     // Prioritize showing the thank you screen
