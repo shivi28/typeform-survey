@@ -32,6 +32,9 @@ function App() {
   // Google Client ID
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   
+  // Add debug info to help troubleshoot
+  console.log("OAuth Client ID is set:", !!GOOGLE_CLIENT_ID);
+  
   // Configure axios with the API URL from environment variables
   const API_URL = import.meta.env.VITE_API_URL || 'https://typeform-backend-6qnp.onrender.com';
   

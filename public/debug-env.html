@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Debug</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .card {
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .value {
+      font-family: monospace;
+      background: #f0f0f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .warning {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+    .success {
+      color: #388e3c;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Environment Variables Debug</h1>
+  
+  <div class="card">
+    <h2>Google OAuth Client ID</h2>
+    <div>
+      <strong>Status:</strong> <span id="client-id-status">Checking...</span>
+    </div>
+    <div>
+      <strong>Value:</strong> <div class="value" id="client-id-value">Checking...</div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>API URL</h2>
+    <div>
+      <strong>Status:</strong> <span id="api-url-status">Checking...</span>
+    </div>
+    <div>
+      <strong>Value:</strong> <div class="value" id="api-url-value">Checking...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recommendations</h2>
+    <ul id="recommendations"></ul>
+  </div>
+
+  <p>
+    <small>Note: This file should be removed after debugging is complete. It exposes sensitive configuration.</small>
+  </p>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check Google Client ID
+      const clientId = window.VITE_GOOGLE_CLIENT_ID || '';
+      const clientIdStatus = document.getElementById('client-id-status');
+      const clientIdValue = document.getElementById('client-id-value');
+      
+      if (clientId) {
+        clientIdStatus.textContent = 'Found ✅';
+        clientIdStatus.className = 'success';
+        clientIdValue.textContent = clientId.substring(0, 10) + '...' + clientId.substring(clientId.length - 10);
+      } else {
+        clientIdStatus.textContent = 'Not found ❌';
+        clientIdStatus.className = 'warning';
+        clientIdValue.textContent = 'Not defined or empty';
+      }
+      
+      // Check API URL
+      const apiUrl = window.VITE_API_URL || '';
+      const apiUrlStatus = document.getElementById('api-url-status');
+      const apiUrlValue = document.getElementById('api-url-value');
+      
+      if (apiUrl) {
+        apiUrlStatus.textContent = 'Found ✅';
+        apiUrlStatus.className = 'success';
+        apiUrlValue.textContent = apiUrl;
+      } else {
+        apiUrlStatus.textContent = 'Not found ❌';
+        apiUrlStatus.className = 'warning';
+        apiUrlValue.textContent = 'Not defined or empty';
+      }
+      
+      // Add recommendations
+      const recommendations = document.getElementById('recommendations');
+      if (!clientId) {
+        const li = document.createElement('li');
+        li.textContent = 'Check that VITE_GOOGLE_CLIENT_ID is properly set in GitHub secrets';
+        recommendations.appendChild(li);
+      }
+      
+      if (!apiUrl) {
+        const li = document.createElement('li');
+        li.textContent = 'Check that VITE_API_URL is properly set in GitHub secrets';
+        recommendations.appendChild(li);
+      }
+      
+      if (clientId) {
+        const li = document.createElement('li');
+        li.textContent = 'Verify that your Google OAuth client is configured to allow this domain';
+        recommendations.appendChild(li);
+      }
+    });
+  </script>
+</body>
+</html> 

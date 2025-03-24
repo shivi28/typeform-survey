@@ -33,6 +33,22 @@ jobs:
         run: |
           echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
           echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env
+          
+      - name: Debug env vars
+        run: |
+          echo "Checking if environment variables are set (will show masked values)"
+          if [ -n "${{ secrets.VITE_GOOGLE_CLIENT_ID }}" ]; then
+            echo "VITE_GOOGLE_CLIENT_ID is set ✓"
+          else
+            echo "VITE_GOOGLE_CLIENT_ID is NOT set ✗"
+          fi
+          if [ -n "${{ secrets.VITE_API_URL }}" ]; then
+            echo "VITE_API_URL is set ✓"
+          else
+            echo "VITE_API_URL is NOT set ✗"
+          fi
+          echo "Contents of .env file (sensitive values will be masked):"
+          cat .env | sed 's/=.*/=***MASKED***/g'
         
       - name: Build
         run: npm run build
